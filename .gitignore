@@ -1,0 +1,6 @@
+results/
+node_modules/
+models/
+data/
+*.pkl
+

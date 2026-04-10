@@ -1,0 +1,14 @@
+{
+  "name": "ai-resume-generator",
+  "version": "1.0.0",
+  "description": "AI-Powered Domain-Aware Resume Generator",
+  "scripts": {
+    "start:backend": "cd backend && python app.py",
+    "start:frontend": "cd frontend && npm run dev",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "install:all": "cd frontend && npm install && cd ../backend && pip install -r requirements.txt || true"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
