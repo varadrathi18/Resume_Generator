@@ -92,7 +92,7 @@ def google_auth():
     client_id = os.environ.get('GOOGLE_CLIENT_ID')
 
     if not token or not client_id:
-        return jsonify({"error": "Missing token or Googe Client ID server-side"}), 400
+        return jsonify({"error": "Missing token or Google Client ID server-side"}), 400
 
     try:
         idinfo = id_token.verify_oauth2_token(token, requests.Request(), client_id)
@@ -110,4 +110,4 @@ def google_auth():
         return jsonify({"token": app_token, "user": {"name": name, "email": email}}), 200
     except ValueError as e:
         logger.error(f"Google Token Verification Error: {e}")
-        return jsonify({"error": "Invalid Google token"}), 401
+        return jsonify({"error": f"Invalid Google token: {str(e)}"}), 401

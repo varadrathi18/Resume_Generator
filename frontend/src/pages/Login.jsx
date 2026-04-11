@@ -37,7 +37,7 @@ export default function Login() {
       localStorage.setItem('user', JSON.stringify(res.data.user));
       navigate('/');
     } catch (err) {
-      setError('Google Sign-In failed');
+      setError(err.response?.data?.error || err.message || 'Google Sign-In failed');
     }
   };
 
