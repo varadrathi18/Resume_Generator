@@ -43,6 +43,7 @@ yarn-error.log*
 .eslintcache
 
 # Models & Large Data
+/models/
 data/
 results/
 *.h5
