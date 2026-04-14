@@ -1,11 +1,15 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
-import { GoogleOAuthProvider } from '@react-oauth/google'
-import Navbar from './components/Navbar'
-import Footer from './components/Footer'
-import Home from './pages/Home'
-import Result from './pages/Result'
-import Login from './pages/Login'
-import Signup from './pages/Signup'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { GoogleOAuthProvider } from '@react-oauth/google';
+import { motion, AnimatePresence } from 'framer-motion';
+import Sidebar from './components/Sidebar';
+import Dashboard from './pages/Dashboard';
+import AiForge from './pages/AiForge';
+import Resumes from './pages/Resumes';
+import ImpactScores from './pages/ImpactScores';
+import Settings from './pages/Settings';
+import Result from './pages/Result';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
 
 const GOOGLE_CLIENT_ID = "387539609566-1k1rqia6rhi0ensgnjcuamf9823nfiqr.apps.googleusercontent.com";
 
@@ -17,21 +21,94 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+const PageTransition = ({ children }) => {
+  const location = useLocation();
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -8 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        style={{ width: '100%', height: '100%' }}
+      >
+        {children}
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
+const DashboardLayout = ({ children }) => {
+  return (
+    <div className="app-layout">
+      <Sidebar />
+      <div className="main-area">
+        <div className="main-content">
+          <PageTransition>{children}</PageTransition>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 function App() {
   return (
     <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <div className="min-h-screen flex flex-col bg-pattern">
-        <Navbar />
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
-          <Route path="/result" element={<ProtectedRoute><Result /></ProtectedRoute>} />
-        </Routes>
-        <Footer />
-      </div>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <DashboardLayout><Dashboard /></DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/ai-forge" 
+          element={
+            <ProtectedRoute>
+              <DashboardLayout><AiForge /></DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/resumes" 
+          element={
+            <ProtectedRoute>
+              <DashboardLayout><Resumes /></DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/impact-scores" 
+          element={
+            <ProtectedRoute>
+              <DashboardLayout><ImpactScores /></DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/settings" 
+          element={
+            <ProtectedRoute>
+              <DashboardLayout><Settings /></DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/result" 
+          element={
+            <ProtectedRoute>
+              <DashboardLayout><Result /></DashboardLayout>
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
     </GoogleOAuthProvider>
-  )
+  );
 }
 
-export default App
+export default App;

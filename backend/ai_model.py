@@ -8,7 +8,8 @@ import logging
 import os
 import time
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 from config import Config
 
@@ -16,6 +17,7 @@ logger = logging.getLogger(__name__)
 
 # ── Module-level state ──────────────────────────────────────────────────
 
+_client = None
 _initialized = False
 _generation_stats = {
     "total_calls": 0,
@@ -23,30 +25,21 @@ _generation_stats = {
     "failures": 0,
 }
 
+# Fallback models to try if the primary model is unavailable (503)
+FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"]
+
 
 def init_gemini():
     """Configure the Gemini client using the API key from config."""
-    global _initialized
+    global _client, _initialized
     if not Config.GEMINI_API_KEY:
         raise EnvironmentError(
             "GEMINI_API_KEY environment variable is not set. "
             "Please set it in backend/.env before starting the server."
         )
-    genai.configure(api_key=Config.GEMINI_API_KEY)
+    _client = genai.Client(api_key=Config.GEMINI_API_KEY)
     _initialized = True
     logger.info(f"✅ Gemini API initialized (model: {Config.GEMINI_MODEL_NAME})")
-
-
-def _get_model(model_name: str | None = None) -> genai.GenerativeModel:
-    """Create a GenerativeModel instance with configured parameters."""
-    name = model_name or Config.GEMINI_MODEL_NAME
-    return genai.GenerativeModel(
-        name,
-        generation_config=genai.types.GenerationConfig(
-            temperature=Config.GEMINI_TEMPERATURE,
-            top_p=Config.GEMINI_TOP_P,
-        ),
-    )
 
 
 def generate_resume(
@@ -62,14 +55,22 @@ def generate_resume(
     - Response validation (must contain Markdown headings)
     - Token usage tracking
     - Detailed logging
+    - Built-in timeout handling
     """
     retries = max_retries or Config.GEMINI_MAX_RETRIES
-    model = _get_model(model_name)
+    name = model_name or Config.GEMINI_MODEL_NAME
 
     for attempt in range(1, retries + 1):
         try:
             start = time.perf_counter()
-            response = model.generate_content(prompt)
+            response = _client.models.generate_content(
+                model=name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=Config.GEMINI_TEMPERATURE,
+                    top_p=Config.GEMINI_TOP_P,
+                )
+            )
             elapsed = time.perf_counter() - start
 
             text = response.text
@@ -98,6 +99,34 @@ def generate_resume(
         except Exception as exc:
             _generation_stats["failures"] += 1
             if attempt == retries:
+                # Try fallback models before giving up
+                if "503" in str(exc) or "UNAVAILABLE" in str(exc):
+                    for fallback in FALLBACK_MODELS:
+                        if fallback == name:
+                            continue
+                        try:
+                            logger.info(f"[Gemini] Trying fallback model: {fallback}")
+                            start = time.perf_counter()
+                            response = _client.models.generate_content(
+                                model=fallback,
+                                contents=prompt,
+                                config=types.GenerateContentConfig(
+                                    temperature=Config.GEMINI_TEMPERATURE,
+                                    top_p=Config.GEMINI_TOP_P,
+                                )
+                            )
+                            elapsed = time.perf_counter() - start
+                            text = response.text
+                            _generation_stats["total_calls"] += 1
+                            _generation_stats["total_tokens_approx"] += len(text.split())
+                            logger.info(
+                                f"[Gemini] Resume generated via fallback {fallback} in {elapsed:.2f}s "
+                                f"(~{len(text.split())} words)"
+                            )
+                            return text
+                        except Exception as fb_exc:
+                            logger.warning(f"[Gemini] Fallback {fallback} also failed: {fb_exc}")
+                            continue
                 raise RuntimeError(
                     f"Gemini API failed after {retries} attempts: {exc}"
                 ) from exc
@@ -150,16 +179,22 @@ def score_resume(
     Returns parsed JSON dict or None if parsing fails.
     """
     try:
-        model = _get_model(model_name or "gemini-pro-latest")
-        response = model.generate_content(scoring_prompt)
+        name = model_name or Config.GEMINI_MODEL_NAME
+        response = _client.models.generate_content(
+            model=name,
+            contents=scoring_prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.2, # Low temperature for more analytical/consistent scoring
+            )
+        )
         text = response.text.strip()
 
         # Try to extract JSON from the response
         # Remove markdown code fences if present
-        if text.startswith("\`\`\`"):
+        if text.startswith("```"):
             text = text.split("\n", 1)[1] if "\n" in text else text[3:]
-        if text.endswith("\`\`\`"):
-            text = text[: text.rfind("\`\`\`")]
+        if text.endswith("```"):
+            text = text[: text.rfind("```")]
         text = text.strip()
 
         return json.loads(text)

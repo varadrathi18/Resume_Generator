@@ -26,7 +26,7 @@ from ai_model import init_gemini, generate_resume, score_resume, get_stats
 from formatter import to_html, to_pdf, to_docx, GENERATED_DIR
 from domain_classifier import DomainClassifier
 from email_service import send_resume_email
-from db import save_resume_record
+from db import save_resume_record, get_user_resumes, update_user_profile
 from auth import auth_bp, token_required
 
 # ── Logging setup ──────────────────────────────────────────────────────
@@ -163,7 +163,7 @@ def generate(current_user):
 
         # 7. Optional: email the resume
         email_status = None
-        user_email = data.get("email", "").strip()
+        user_email = current_user.get("email", "").strip() if current_user else data.get("email", "").strip()
         if user_email and Config.EMAIL_ENABLED:
             email_status = send_resume_email(
                 to_email=user_email,
@@ -242,6 +242,41 @@ def classify_only():
 def download_file(filename):
     """Download a generated resume file."""
     return send_from_directory(GENERATED_DIR, filename, as_attachment=True)
+
+
+@app.route("/api/resumes", methods=["GET"])
+@token_required
+def get_resumes(current_user):
+    """Fetch user's resume history."""
+    try:
+        resumes = get_user_resumes(current_user["email"])
+        return jsonify({"resumes": resumes}), 200
+    except Exception as e:
+        logger.error(f"Error fetching resumes: {e}")
+        return jsonify({"error": "Failed to fetch resumes"}), 500
+
+
+@app.route("/api/user/profile", methods=["GET", "PUT"])
+@token_required
+def user_profile(current_user):
+    """Get or update user profile."""
+    if request.method == "GET":
+        # Remove sensitive info
+        profile = {
+            "name": current_user.get("name"),
+            "email": current_user.get("email"),
+            "auth_provider": current_user.get("auth_provider", "local"),
+            "theme": current_user.get("theme", "dark"),
+            "email_notifications": current_user.get("email_notifications", True)
+        }
+        return jsonify({"profile": profile}), 200
+        
+    elif request.method == "PUT":
+        data = request.get_json(force=True)
+        success = update_user_profile(current_user["email"], data)
+        if success:
+            return jsonify({"message": "Profile updated successfully"}), 200
+        return jsonify({"error": "Failed to update profile"}), 500
 
 
 # ── Static file serving (production) ────────────────────────────────────
