@@ -11,7 +11,7 @@ export default function ImpactScores() {
     const fetchResumes = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://127.0.0.1:8080/api/resumes', {
+        const res = await axios.get('/api/resumes', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setResumes(res.data.resumes || []);

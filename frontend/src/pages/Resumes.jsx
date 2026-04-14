@@ -13,7 +13,7 @@ export default function Resumes() {
     const fetchResumes = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://127.0.0.1:8080/api/resumes', {
+        const res = await axios.get('/api/resumes', {
           headers: { Authorization: `Bearer ${token}` }
         });
         setResumes(res.data.resumes || []);
@@ -107,12 +107,12 @@ export default function Resumes() {
 
                 <div style={{ marginTop: 'auto', display: 'flex', gap: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
                   {resume.files?.pdf && (
-                    <a href={`http://127.0.0.1:8080/api/download/${resume.files.pdf}`} download className="btn-secondary" style={{ flex: 1, padding: '0.5rem', fontSize: '0.8125rem' }}>
+                    <a href={`/api/download/${resume.files.pdf}`} download className="btn-secondary" style={{ flex: 1, padding: '0.5rem', fontSize: '0.8125rem' }}>
                       <Download size={14} /> PDF
                     </a>
                   )}
                   {resume.files?.docx && (
-                    <a href={`http://127.0.0.1:8080/api/download/${resume.files.docx}`} download className="btn-outline" style={{ flex: 1, padding: '0.5rem', fontSize: '0.8125rem' }}>
+                    <a href={`/api/download/${resume.files.docx}`} download className="btn-outline" style={{ flex: 1, padding: '0.5rem', fontSize: '0.8125rem' }}>
                       <Download size={14} /> DOCX
                     </a>
                   )}

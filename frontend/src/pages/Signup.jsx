@@ -18,7 +18,7 @@ export default function Signup() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.post('http://127.0.0.1:8080/api/auth/register', { name, email, password });
+      const res = await axios.post('/api/auth/register', { name, email, password });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
       navigate('/');
@@ -31,7 +31,7 @@ export default function Signup() {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
-      const res = await axios.post('http://127.0.0.1:8080/api/auth/google', {
+      const res = await axios.post('/api/auth/google', {
         token: credentialResponse.credential
       });
       localStorage.setItem('token', res.data.token);

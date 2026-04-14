@@ -16,7 +16,7 @@ export default function AiForge() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('http://127.0.0.1:8080/api/generate', formData, {
+      const res = await axios.post('/api/generate', formData, {
         headers: {
           Authorization: `Bearer ${token}`
         }

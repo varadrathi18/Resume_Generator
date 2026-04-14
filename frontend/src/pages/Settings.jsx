@@ -13,7 +13,7 @@ export default function Settings() {
     const fetchProfile = async () => {
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.get('http://127.0.0.1:8080/api/user/profile', {
+        const res = await axios.get('/api/user/profile', {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (res.data.profile) {
@@ -41,7 +41,7 @@ export default function Settings() {
     setMessage({ type: '', text: '' });
     try {
       const token = localStorage.getItem('token');
-      await axios.put('http://127.0.0.1:8080/api/user/profile', {
+      await axios.put('/api/user/profile', {
         name: profile.name,
         theme: profile.theme,
         email_notifications: profile.email_notifications
