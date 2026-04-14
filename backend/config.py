@@ -21,7 +21,7 @@ class Config:
 
     # ── ML Models ─────────────────────────────────────────────────────────
     MODELS_DIR: str = os.path.join(os.path.dirname(__file__), "models")
-    USE_TRANSFORMER_MODEL: bool = os.getenv("USE_TRANSFORMER_MODEL", "true").lower() == "true"
+    USE_TRANSFORMER_MODEL: bool = os.getenv("USE_TRANSFORMER_MODEL", "false").lower() == "true"
     TRANSFORMER_MODEL_PATH: str = os.path.join(
         os.path.dirname(__file__), "models", "resume_classifier_model"
     )

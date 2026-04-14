@@ -43,12 +43,18 @@ yarn-error.log*
 .eslintcache
 
 # Models & Large Data
-models/
 data/
 results/
-*.pkl
 *.h5
 *.joblib
+
+# Root-level large files
+/resume_classifier.pkl
+/tfidf_vectorizer.pkl
+
+# Large model files inside backend/models (too big for Git)
+backend/models/embedder.pkl
+backend/models/resume_classifier_model/
 
 # OS & IDE
 .DS_Store
