@@ -286,10 +286,17 @@ def user_profile(current_user):
 def serve_frontend(path):
     """Serve the React frontend in production."""
     static_dir = app.static_folder
-    if static_dir and os.path.exists(os.path.join(static_dir, path)):
+    if not static_dir:
+        return jsonify({
+            "status": "ok",
+            "message": "AI Resume Generator API. Frontend not built yet.",
+        })
+    # If path is empty (root URL) or doesn't map to a real file, serve index.html
+    if path and os.path.isfile(os.path.join(static_dir, path)):
         return send_from_directory(static_dir, path)
-    # Fallback to index.html for client-side routing
-    if static_dir and os.path.exists(os.path.join(static_dir, "index.html")):
+    # Fallback to index.html for client-side routing (SPA)
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
         return send_from_directory(static_dir, "index.html")
     return jsonify({
         "status": "ok",
