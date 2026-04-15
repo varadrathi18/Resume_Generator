@@ -26,7 +26,7 @@ _generation_stats = {
 }
 
 # Fallback models to try if the primary model is unavailable (503)
-FALLBACK_MODELS = ["gemini-2.0-flash", "gemini-1.5-flash"]
+FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-1.5-flash"]
 
 
 def init_gemini():
