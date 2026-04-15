@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api, { getBackendUrl } from '../api';
 import { motion } from 'framer-motion';
 import { FileText, Download, Clock, Star, AlertTriangle, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -12,10 +12,7 @@ export default function Resumes() {
   useEffect(() => {
     const fetchResumes = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('/api/resumes', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await api.get('/api/resumes');
         setResumes(res.data.resumes || []);
       } catch (err) {
         console.error("Failed to fetch resumes", err);
@@ -107,12 +104,12 @@ export default function Resumes() {
 
                 <div style={{ marginTop: 'auto', display: 'flex', gap: '0.5rem', paddingTop: '1rem', borderTop: '1px solid var(--color-border)' }}>
                   {resume.files?.pdf && (
-                    <a href={`/api/download/${resume.files.pdf}`} download className="btn-secondary" style={{ flex: 1, padding: '0.5rem', fontSize: '0.8125rem' }}>
+                    <a href={getBackendUrl(`/api/download/${resume.files.pdf}`)} download className="btn-secondary" style={{ flex: 1, padding: '0.5rem', fontSize: '0.8125rem' }}>
                       <Download size={14} /> PDF
                     </a>
                   )}
                   {resume.files?.docx && (
-                    <a href={`/api/download/${resume.files.docx}`} download className="btn-outline" style={{ flex: 1, padding: '0.5rem', fontSize: '0.8125rem' }}>
+                    <a href={getBackendUrl(`/api/download/${resume.files.docx}`)} download className="btn-outline" style={{ flex: 1, padding: '0.5rem', fontSize: '0.8125rem' }}>
                       <Download size={14} /> DOCX
                     </a>
                   )}

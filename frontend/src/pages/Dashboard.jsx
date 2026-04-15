@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { motion } from 'framer-motion';
 import { FileText, Sparkles, TrendingUp, Zap, Clock, Star } from 'lucide-react';
 
@@ -13,10 +13,7 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchResumes = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('/api/resumes', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await api.get('/api/resumes');
         setResumes(res.data.resumes || []);
       } catch (err) {
         console.error("Failed to fetch resumes", err);

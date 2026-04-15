@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { User, Mail, Shield, Bell, Save, AlertCircle, CheckCircle } from 'lucide-react';
 
@@ -12,10 +12,7 @@ export default function Settings() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('/api/user/profile', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await api.get('/api/user/profile');
         if (res.data.profile) {
           setProfile(res.data.profile);
         }
@@ -40,13 +37,10 @@ export default function Settings() {
     setSaving(true);
     setMessage({ type: '', text: '' });
     try {
-      const token = localStorage.getItem('token');
-      await axios.put('/api/user/profile', {
+      await api.put('/api/user/profile', {
         name: profile.name,
         theme: profile.theme,
         email_notifications: profile.email_notifications
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
       });
       setMessage({ type: 'success', text: 'Profile updated successfully' });
       // Update local storage name just in case it's used elsewhere for quick access

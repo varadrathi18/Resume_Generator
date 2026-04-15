@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import Form from '../components/Form';
 import { AlertCircle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,12 +15,7 @@ export default function AiForge() {
     setError('');
 
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post('/api/generate', formData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      const res = await api.post('/api/generate', formData);
       navigate('/result', { state: { result: res.data } });
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'Something went wrong';

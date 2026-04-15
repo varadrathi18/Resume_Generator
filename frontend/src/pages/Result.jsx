@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
+import { getBackendUrl } from '../api';
 import ResumePreview from '../components/ResumePreview';
 import {
   CheckCircle,
@@ -218,13 +219,13 @@ export default function Result() {
           {/* Export Buttons */}
           <motion.div variants={itemVariants} className="export-btn-group">
             {result.pdf_url && (
-              <a href={result.pdf_url} download className="export-btn primary">
+              <a href={getBackendUrl(result.pdf_url)} download className="export-btn primary">
                 <Download size={16} />
                 Export PDF
               </a>
             )}
             {result.docx_url && (
-              <a href={result.docx_url} download className="export-btn">
+              <a href={getBackendUrl(result.docx_url)} download className="export-btn">
                 <FileText size={16} />
                 Word Doc
               </a>
@@ -247,7 +248,7 @@ export default function Result() {
         {/* RIGHT COLUMN — Resume Preview */}
         <motion.div
           variants={itemVariants}
-          style={{ flex: 1, minWidth: 0 }}
+          style={{ flex: 1, minWidth: 'min(100%, 500px)' }}
         >
           <ResumePreview data={result} />
         </motion.div>

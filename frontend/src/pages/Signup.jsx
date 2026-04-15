@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { GoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
+import api from '../api';
 import { User, Mail, Lock, LoaderCircle, AlertCircle, Flame } from 'lucide-react';
 
 export default function Signup() {
@@ -18,7 +18,7 @@ export default function Signup() {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.post('/api/auth/register', { name, email, password });
+      const res = await api.post('/api/auth/register', { name, email, password });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
       navigate('/');
@@ -31,7 +31,7 @@ export default function Signup() {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
-      const res = await axios.post('/api/auth/google', {
+      const res = await api.post('/api/auth/google', {
         token: credentialResponse.credential
       });
       localStorage.setItem('token', res.data.token);

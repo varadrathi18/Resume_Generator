@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import { motion } from 'framer-motion';
 import { BarChart3, Target, TrendingUp, Zap, Hexagon, ShieldCheck } from 'lucide-react';
 
@@ -10,10 +10,7 @@ export default function ImpactScores() {
   useEffect(() => {
     const fetchResumes = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get('/api/resumes', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const res = await api.get('/api/resumes');
         setResumes(res.data.resumes || []);
       } catch (err) {
         console.error("Failed to fetch resumes", err);
