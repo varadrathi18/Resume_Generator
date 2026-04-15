@@ -85,7 +85,7 @@ def generate_resume(
                     f"[Gemini] Attempt {attempt}: output failed validation, retrying..."
                 )
                 if attempt < retries:
-                    time.sleep(2 ** attempt)
+                    time.sleep(1)
                     continue
                 # On last attempt, return what we have
                 logger.warning("[Gemini] Returning unvalidated output on final attempt")
@@ -130,7 +130,7 @@ def generate_resume(
                 raise RuntimeError(
                     f"Gemini API failed after {retries} attempts: {exc}"
                 ) from exc
-            wait = 2 ** attempt
+            wait = 1
             logger.warning(
                 f"[Gemini] Attempt {attempt} failed ({exc}). Retrying in {wait}s…"
             )

@@ -118,6 +118,9 @@ def generate(current_user):
 
     Accepts user data, classifies domain, generates resume via Gemini,
     formats it to PDF/DOCX/HTML, and optionally emails it.
+
+    Optimized: Returns the response immediately after generation.
+    Scoring, email, and DB save happen in background threads.
     """
     data = request.get_json(force=True)
 
@@ -138,14 +141,14 @@ def generate(current_user):
         domain = classification.domain
         confidence = classification.confidence
 
-        # 3. Score input quality
+        # 3. Score input quality (instant, no API call)
         quality_scores = score_resume_quality(data)
 
-        # 4. Build prompt & generate
+        # 4. Build prompt & generate (this is the only slow step now)
         prompt = build_prompt(data, domain, confidence)
         resume_text = generate_resume(prompt)
 
-        # 5. Format outputs — use person's name for file naming
+        # 5. Format outputs
         person_name = data.get("name", "")
         resume_html = to_html(resume_text)
         pdf_path = to_pdf(resume_text, name=person_name)
@@ -154,54 +157,7 @@ def generate(current_user):
         pdf_filename = os.path.basename(pdf_path)
         docx_filename = os.path.basename(docx_path)
 
-        user_email = current_user.get("email", "").strip() if current_user else data.get("email", "").strip()
-
-        # 6 & 7. Optimization: Execute scoring and email concurrently to save time
-        def _do_scoring():
-            try:
-                scoring_prompt = build_scoring_prompt(resume_text, domain)
-                return score_resume(scoring_prompt)
-            except Exception:
-                return None
-
-        def _do_email():
-            if user_email and Config.EMAIL_ENABLED:
-                try:
-                    return send_resume_email(
-                        to_email=user_email,
-                        name=data.get("name", "Candidate"),
-                        domain=domain,
-                        pdf_path=pdf_path,
-                        docx_path=docx_path,
-                        quality_grade=quality_scores.get("grade", "B"),
-                    )
-                except Exception as e:
-                    logger.error(f"Async email failed: {e}")
-            return None
-
-        resume_score = None
-        email_status = None
-
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
-            future_score = executor.submit(_do_scoring)
-            future_email = executor.submit(_do_email)
-            
-            resume_score = future_score.result()
-            email_status = future_email.result()
-
-        # 8. Store history in MongoDB
-        record_id = save_resume_record(
-            name=person_name,
-            email=user_email,
-            target_role=data.get("role", ""),
-            domain=domain,
-            confidence=confidence,
-            ats_score=resume_score.get("ats_score", "N/A") if resume_score else "N/A",
-            quality_grade=quality_scores.get("grade", "B"),
-            pdf_filename=pdf_filename,
-            docx_filename=docx_filename
-        )
-
+        # Build the response immediately — don't wait for scoring/email/DB
         response_data = {
             "domain": domain,
             "classification": classification.to_dict(),
@@ -214,16 +170,55 @@ def generate(current_user):
             "docx_filename": docx_filename,
         }
 
-        if record_id:
-            response_data["record_id"] = record_id
+        # 6. Fire-and-forget: scoring, email, DB save in background
+        user_email = current_user.get("email", "").strip() if current_user else data.get("email", "").strip()
 
-        if resume_score:
-            response_data["resume_score"] = resume_score
+        def _background_tasks():
+            """Run non-critical tasks after the response is sent."""
+            try:
+                # Score the resume (optional Gemini call)
+                resume_score = None
+                try:
+                    scoring_prompt = build_scoring_prompt(resume_text, domain)
+                    resume_score = score_resume(scoring_prompt)
+                except Exception:
+                    pass
 
-        if email_status:
-            response_data["email_status"] = email_status
+                # Email the resume
+                if user_email and Config.EMAIL_ENABLED:
+                    try:
+                        send_resume_email(
+                            to_email=user_email,
+                            name=data.get("name", "Candidate"),
+                            domain=domain,
+                            pdf_path=pdf_path,
+                            docx_path=docx_path,
+                            quality_grade=quality_scores.get("grade", "B"),
+                        )
+                    except Exception as e:
+                        logger.error(f"Background email failed: {e}")
+
+                # Save to MongoDB
+                save_resume_record(
+                    name=person_name,
+                    email=user_email,
+                    target_role=data.get("role", ""),
+                    domain=domain,
+                    confidence=confidence,
+                    ats_score=resume_score.get("ats_score", "N/A") if resume_score else "N/A",
+                    quality_grade=quality_scores.get("grade", "B"),
+                    pdf_filename=pdf_filename,
+                    docx_filename=docx_filename,
+                )
+            except Exception as e:
+                logger.error(f"Background tasks failed: {e}")
+
+        # Launch background tasks (non-blocking)
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+        executor.submit(_background_tasks)
 
         return jsonify(response_data)
+
 
     except Exception as exc:
         traceback.print_exc()
