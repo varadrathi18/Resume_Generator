@@ -1,0 +1,27 @@
+# Ignore everything Railway/Docker doesn't need
+node_modules
+frontend
+.venv
+.git
+.gitignore
+*.ipynb
+notebooks
+data
+results
+anaconda_projects
+models
+.ipynb_checkpoints
+.virtual_documents
+.DS_Store
+__pycache__
+*.pyc
+docs
+README.md
+domain_model_training_final.ipynb
+resume_classifier.pkl
+tfidf_vectorizer.pkl
+package.json
+package-lock.json
+railway.toml
+render.yaml
+Procfile
