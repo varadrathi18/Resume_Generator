@@ -26,7 +26,7 @@ _generation_stats = {
 }
 
 # Fallback models to try if the primary model is unavailable (503)
-FALLBACK_MODELS = ["gemini-2.5-flash", "gemini-1.5-flash"]
+FALLBACK_MODELS = ["gemini-1.5-pro", "gemini-1.0-pro"]
 
 
 def init_gemini():
@@ -58,7 +58,8 @@ def generate_resume(
     - Built-in timeout handling
     """
     retries = max_retries or Config.GEMINI_MAX_RETRIES
-    name = model_name or Config.GEMINI_MODEL_NAME
+    # FORCE gemini-1.5-flash to bypass 503 errors and ignore Railway environment variable if set to 2.5
+    name = "gemini-1.5-flash"
 
     for attempt in range(1, retries + 1):
         try:
