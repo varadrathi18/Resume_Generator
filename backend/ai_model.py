@@ -98,9 +98,14 @@ def generate_resume(
 
         except Exception as exc:
             _generation_stats["failures"] += 1
-            if attempt == retries:
+            
+            # If it's a 503 overload, aggressively retry up to 5 times regardless of default retries
+            is_overloaded = "503" in str(exc) or "UNAVAILABLE" in str(exc) or "429" in str(exc)
+            max_attempts_for_this_error = 5 if is_overloaded else retries
+            
+            if attempt >= max_attempts_for_this_error:
                 # Try fallback models before giving up
-                if "503" in str(exc) or "UNAVAILABLE" in str(exc):
+                if is_overloaded:
                     for fallback in FALLBACK_MODELS:
                         if fallback == name:
                             continue
@@ -121,22 +126,17 @@ def generate_resume(
                             _generation_stats["total_tokens_approx"] += len(text.split())
                             logger.info(
                                 f"[Gemini] Resume generated via fallback {fallback} in {elapsed:.2f}s "
-                                f"(~{len(text.split())} words)"
                             )
                             return text
                         except Exception as fb_exc:
                             logger.warning(f"[Gemini] Fallback {fallback} also failed: {fb_exc}")
                             continue
-                raise RuntimeError(
-                    f"Gemini API failed after {retries} attempts: {exc}"
-                ) from exc
-            wait = 1
-            logger.warning(
-                f"[Gemini] Attempt {attempt} failed ({exc}). Retrying in {wait}s…"
-            )
+                raise RuntimeError(f"Gemini API failed after {attempt} attempts: {exc}") from exc
+                
+            wait = 2 if is_overloaded else 1
+            logger.warning(f"[Gemini] Attempt {attempt} failed ({exc}). Retrying in {wait}s…")
             time.sleep(wait)
 
-    # Should never reach here, but just in case
     raise RuntimeError("Gemini generation failed unexpectedly")
 
 
