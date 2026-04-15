@@ -1,7 +1,17 @@
+# railway.toml
+# This configuration forces Railway to ignore the root-level package.json 
+# and only install the Python backend requirements.
+
 [build]
 builder = "nixpacks"
-installCommand = "pip install -r backend/requirements.txt"
-buildCommand = "echo 'Build skipped (using custom install)'"
+
+[phases.setup]
+nixPkgs = ["python311", "gcc"]
+
+[phases.install]
+dependsOn = ["setup"]
+cmds = ["pip install -r backend/requirements.txt"]
 
 [deploy]
 startCommand = "gunicorn --chdir backend app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+restartPolicyType = "ON_FAILURE"
