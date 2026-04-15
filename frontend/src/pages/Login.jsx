@@ -20,7 +20,7 @@ export default function Login() {
       const res = await api.post('/api/auth/login', { email, password });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      navigate('/');
+      window.location.href = '/';
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to login');
     } finally {
@@ -35,7 +35,7 @@ export default function Login() {
       });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      navigate('/');
+      window.location.href = '/';
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Google Sign-In failed');
     }

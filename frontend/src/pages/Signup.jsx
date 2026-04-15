@@ -21,7 +21,7 @@ export default function Signup() {
       const res = await api.post('/api/auth/register', { name, email, password });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      navigate('/');
+      window.location.href = '/';
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to sign up');
     } finally {
@@ -36,7 +36,7 @@ export default function Signup() {
       });
       localStorage.setItem('token', res.data.token);
       localStorage.setItem('user', JSON.stringify(res.data.user));
-      navigate('/');
+      window.location.href = '/';
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Google Sign-In failed');
     }

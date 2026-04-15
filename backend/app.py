@@ -15,6 +15,7 @@ import os
 import sys
 import time
 import traceback
+import concurrent.futures
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -153,26 +154,40 @@ def generate(current_user):
         pdf_filename = os.path.basename(pdf_path)
         docx_filename = os.path.basename(docx_path)
 
-        # 6. Optional: score the generated resume
-        resume_score = None
-        try:
-            scoring_prompt = build_scoring_prompt(resume_text, domain)
-            resume_score = score_resume(scoring_prompt)
-        except Exception:
-            pass  # Non-critical, don't fail the request
-
-        # 7. Optional: email the resume
-        email_status = None
         user_email = current_user.get("email", "").strip() if current_user else data.get("email", "").strip()
-        if user_email and Config.EMAIL_ENABLED:
-            email_status = send_resume_email(
-                to_email=user_email,
-                name=data.get("name", "Candidate"),
-                domain=domain,
-                pdf_path=pdf_path,
-                docx_path=docx_path,
-                quality_grade=quality_scores.get("grade", "B"),
-            )
+
+        # 6 & 7. Optimization: Execute scoring and email concurrently to save time
+        def _do_scoring():
+            try:
+                scoring_prompt = build_scoring_prompt(resume_text, domain)
+                return score_resume(scoring_prompt)
+            except Exception:
+                return None
+
+        def _do_email():
+            if user_email and Config.EMAIL_ENABLED:
+                try:
+                    return send_resume_email(
+                        to_email=user_email,
+                        name=data.get("name", "Candidate"),
+                        domain=domain,
+                        pdf_path=pdf_path,
+                        docx_path=docx_path,
+                        quality_grade=quality_scores.get("grade", "B"),
+                    )
+                except Exception as e:
+                    logger.error(f"Async email failed: {e}")
+            return None
+
+        resume_score = None
+        email_status = None
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            future_score = executor.submit(_do_scoring)
+            future_email = executor.submit(_do_email)
+            
+            resume_score = future_score.result()
+            email_status = future_email.result()
 
         # 8. Store history in MongoDB
         record_id = save_resume_record(
