@@ -1,6 +1,7 @@
 [build]
 builder = "nixpacks"
-buildCommand = "pip install -r backend/requirements.txt"
+installCommand = "pip install -r backend/requirements.txt"
+buildCommand = "echo 'Build skipped (using custom install)'"
 
 [deploy]
 startCommand = "gunicorn --chdir backend app:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
