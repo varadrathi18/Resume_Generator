@@ -98,10 +98,10 @@ export default function Result() {
       </motion.header>
 
       {/* Main two-column layout */}
-      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
 
         {/* LEFT COLUMN — Analytics */}
-        <div style={{ width: '100%', maxWidth: 380, display: 'flex', flexDirection: 'column', gap: '1.25rem', flexShrink: 0 }}>
+        <div style={{ flex: '1 1 320px', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
           {/* ATS Score Card */}
           <motion.div variants={itemVariants} className="card" style={{ padding: '1.5rem' }}>
@@ -248,7 +248,7 @@ export default function Result() {
         {/* RIGHT COLUMN — Resume Preview */}
         <motion.div
           variants={itemVariants}
-          style={{ flex: 1, minWidth: 'min(100%, 500px)' }}
+          style={{ flex: '999 1 500px', minWidth: '0', width: '100%', overflowX: 'auto', paddingBottom: '2rem' }}
         >
           <ResumePreview data={result} />
         </motion.div>
