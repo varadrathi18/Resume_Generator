@@ -101,7 +101,7 @@ export default function Result() {
       <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
 
         {/* LEFT COLUMN — Analytics */}
-        <div style={{ flex: '1 1 320px', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+        <div style={{ flex: '1 1 min(100%, 320px)', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
 
           {/* ATS Score Card */}
           <motion.div variants={itemVariants} className="card" style={{ padding: '1.5rem' }}>

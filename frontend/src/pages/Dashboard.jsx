@@ -61,7 +61,7 @@ export default function Dashboard() {
       </motion.header>
 
       {/* Top Stats Cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '1.5rem', marginBottom: '2.5rem' }}>
         
         <motion.div variants={itemVariants} className="card" style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           <div style={{ background: 'rgba(232, 80, 58, 0.1)', color: 'var(--color-accent)', padding: '1rem', borderRadius: '12px' }}>
@@ -134,12 +134,12 @@ export default function Dashboard() {
                   onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-bg-hover)'}
                   onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                  >
-                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                     <div style={{ width: 40, height: 40, borderRadius: '10px', background: 'var(--color-bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)' }}>
+                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', minWidth: 0 }}>
+                     <div style={{ width: 40, height: 40, borderRadius: '10px', background: 'var(--color-bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-text-secondary)', flexShrink: 0 }}>
                        <FileText size={18} />
                      </div>
-                     <div>
-                       <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '0.25rem' }}>
+                     <div style={{ minWidth: 0 }}>
+                       <div style={{ fontWeight: 600, color: 'var(--color-text-primary)', marginBottom: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                          {resume.files?.pdf || 'Unnamed Resume'}
                        </div>
                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>

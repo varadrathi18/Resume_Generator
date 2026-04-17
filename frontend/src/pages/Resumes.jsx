@@ -65,7 +65,7 @@ export default function Resumes() {
       {loading ? (
         <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--color-text-secondary)' }}>Loading library...</div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: '1.5rem' }}>
           {resumes.map((resume) => {
             const atsScore = parseInt(resume.ats_score) || 0;
             const offset = 100 - atsScore;

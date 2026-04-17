@@ -1374,3 +1374,61 @@ a {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-text-muted);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RESPONSIVE UTILITIES (MOBILE OVERRIDES)
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Responsive Grid */
+.responsive-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 640px) {
+  .responsive-grid-2 {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  /* Auth Pages */
+  .auth-page {
+    padding: 1rem;
+  }
+  
+  .auth-form-card {
+    padding: 1.25rem;
+  }
+
+  .auth-heading h2 {
+    font-size: 1.5rem;
+  }
+  
+  .auth-card {
+    max-width: 100%;
+  }
+
+  /* Adjust Form elements for smaller screens */
+  .form-group {
+    gap: 0.375rem;
+  }
+
+  /* Global Typography scaling */
+  h1 { font-size: 1.75rem !important; }
+  h2 { font-size: 1.25rem !important; }
+  
+  /* Utility for stacked sidebars */
+  .mobile-stack-order {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .mobile-stack-order > :first-child {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  
+  /* Padding Utilities */
+  .mobile-p-1 { padding: 1rem !important; }
+}

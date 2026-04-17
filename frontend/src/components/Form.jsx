@@ -73,7 +73,7 @@ export default function Form({ onSubmit, loading }) {
         </div>
 
         {/* Fields */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+        <div className="responsive-grid-2">
           <div className="form-group">
             <label className="form-label">Full Name <span className="required">*</span></label>
             <input
@@ -129,7 +129,7 @@ export default function Form({ onSubmit, loading }) {
 
   const renderStepTwo = () => (
     <motion.div key="step2" variants={slideVariants} initial="enter" animate="center" exit="exit">
-      <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      <div className="mobile-stack-order" style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
         {/* Left sidebar panel */}
         <div style={{ width: '100%', maxWidth: 280, display: 'flex', flexDirection: 'column', gap: '1rem', flexShrink: 0 }}>
@@ -198,7 +198,7 @@ export default function Form({ onSubmit, loading }) {
             </div>
 
             {/* Education + Projects side by side */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem' }}>
+            <div className="responsive-grid-2">
               <div className="form-group">
                 <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                   <GraduationCap size={14} style={{ color: 'var(--color-purple)' }} />
