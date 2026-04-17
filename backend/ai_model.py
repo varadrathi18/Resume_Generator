@@ -60,7 +60,11 @@ def generate_resume(
     retries = max_retries or Config.GEMINI_MAX_RETRIES
     name = model_name or Config.GEMINI_MODEL_NAME
 
-    for attempt in range(1, retries + 1):
+    attempt = 0
+    max_attempts = retries
+
+    while attempt < max_attempts:
+        attempt += 1
         try:
             start = time.perf_counter()
             response = _client.models.generate_content(
@@ -84,7 +88,7 @@ def generate_resume(
                 logger.warning(
                     f"[Gemini] Attempt {attempt}: output failed validation, retrying..."
                 )
-                if attempt < retries:
+                if attempt < max_attempts:
                     time.sleep(1)
                     continue
                 # On last attempt, return what we have
@@ -101,9 +105,10 @@ def generate_resume(
             
             # If it's a 503 overload, aggressively retry up to 5 times regardless of default retries
             is_overloaded = "503" in str(exc) or "UNAVAILABLE" in str(exc) or "429" in str(exc)
-            max_attempts_for_this_error = 5 if is_overloaded else retries
+            if is_overloaded:
+                max_attempts = max(max_attempts, 5)
             
-            if attempt >= max_attempts_for_this_error:
+            if attempt >= max_attempts:
                 # Try fallback models before giving up
                 if is_overloaded:
                     for fallback in FALLBACK_MODELS:
