@@ -76,7 +76,6 @@ export default function Signup() {
               theme="filled_black"
               shape="rectangular"
               size="large"
-              width="360"
             />
           </div>
 

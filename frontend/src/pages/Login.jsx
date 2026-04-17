@@ -75,7 +75,6 @@ export default function Login() {
               theme="filled_black"
               shape="rectangular"
               size="large"
-              width="360"
             />
           </div>
 
