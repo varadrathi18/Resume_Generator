@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, Flame } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import AiForge from './pages/AiForge';
@@ -40,9 +42,35 @@ const PageTransition = ({ children }) => {
 };
 
 const DashboardLayout = ({ children }) => {
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   return (
     <div className="app-layout">
-      <Sidebar />
+      {/* Mobile Top Header */}
+      <div className="mobile-header">
+        <div className="sidebar-logo-icon" style={{ width: 36, height: 36 }}>
+          <Flame size={20} color="white" />
+        </div>
+        <div className="sidebar-brand-name" style={{ flex: 1, marginLeft: 12 }}>
+          ResumeForge
+        </div>
+        <button 
+          className="mobile-menu-btn" 
+          onClick={() => setIsMobileMenuOpen(true)}
+        >
+          <Menu size={24} />
+        </button>
+      </div>
+
+      {/* Overlay */}
+      {isMobileMenuOpen && (
+        <div 
+          className="sidebar-overlay" 
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
+      <Sidebar isOpen={isMobileMenuOpen} setIsOpen={setIsMobileMenuOpen} />
       <div className="main-area">
         <div className="main-content">
           <PageTransition>{children}</PageTransition>

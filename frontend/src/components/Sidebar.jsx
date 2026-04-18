@@ -10,9 +10,10 @@ import {
   HelpCircle,
   Zap,
   Flame,
+  X,
 } from 'lucide-react';
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen, setIsOpen }) {
   const location = useLocation();
   const navigate = useNavigate();
   const pathname = location.pathname;
@@ -36,17 +37,24 @@ export default function Sidebar() {
       initial={{ x: -260, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       transition={{ type: 'spring', damping: 25, stiffness: 120 }}
-      className="sidebar"
+      className={`sidebar ${isOpen ? 'mobile-open' : ''}`}
     >
       {/* Logo */}
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon">
           <Flame size={20} color="white" />
         </div>
-        <div className="sidebar-brand">
+        <div className="sidebar-brand" style={{ flex: 1 }}>
           <span className="sidebar-brand-name">ResumeForge</span>
           <span className="sidebar-brand-sub">AI Engine v2.4</span>
         </div>
+        {/* Mobile Close Button */}
+        <button 
+          className="sidebar-close-btn" 
+          onClick={() => setIsOpen && setIsOpen(false)}
+        >
+          <X size={20} />
+        </button>
       </div>
 
       {/* Navigation */}
@@ -64,6 +72,7 @@ export default function Sidebar() {
               <Link
                 to={item.path}
                 className={`sidebar-nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => setIsOpen && setIsOpen(false)}
               >
                 <Icon size={20} className="sidebar-nav-icon" />
                 <span>{item.name}</span>
