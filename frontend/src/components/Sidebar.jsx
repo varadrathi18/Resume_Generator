@@ -29,16 +29,16 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       animate={{ x: 0, opacity: 1 }}
       transition={{ type: 'spring', damping: 25, stiffness: 120 }}
       className={`
-        hidden md:flex flex-col w-[260px] min-w-[260px] h-screen
+        hidden md:flex flex-col w-[260px] min-w-[260px] h-dvh
         bg-[var(--color-bg-sidebar)] border-r border-[var(--color-border)]
-        sticky top-0 z-40 overflow-y-auto overflow-x-hidden
+        sticky top-0 z-40 overflow-y-auto overflow-x-hidden overscroll-contain
         max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[60]
         max-md:transition-transform max-md:duration-300 max-md:ease-[cubic-bezier(0.4,0,0.2,1)]
         ${isOpen ? 'max-md:!flex max-md:translate-x-0 max-md:shadow-2xl' : 'max-md:-translate-x-full'}
       `}
     >
       {/* ── Logo ─────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-[var(--color-border)]">
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-[var(--color-border)] shrink-0">
         <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 bg-gradient-to-br from-[var(--color-accent)] to-[var(--color-accent-dark)] shadow-lg shadow-[var(--color-accent)]/30">
           <Flame size={20} color="white" />
         </div>
@@ -60,7 +60,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
       </div>
 
       {/* ── Navigation ─────────────────────────────────────── */}
-      <nav className="flex-1 flex flex-col gap-0.5 px-3 py-4 overflow-y-auto">
+      <nav className="flex-1 flex flex-col gap-0.5 px-3 py-4">
         {navItems.map((item, i) => {
           const isActive = pathname === item.path;
           const Icon = item.icon;
