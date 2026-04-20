@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../api';
 import Form from '../components/Form';
+import Loader from '../components/Loader';
 import { AlertCircle, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PageHeader from '../components/PageHeader';
 
 export default function AiForge() {
   const [loading, setLoading] = useState(false);
@@ -13,7 +15,6 @@ export default function AiForge() {
   const handleSubmit = async (formData) => {
     setLoading(true);
     setError('');
-
     try {
       const res = await api.post('/api/generate', formData);
       navigate('/result', { state: { result: res.data } });
@@ -25,67 +26,37 @@ export default function AiForge() {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      style={{ width: '100%', maxWidth: 1100, margin: '0 auto' }}
-    >
-      {/* Page Header */}
-      <header style={{ marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-          <Sparkles size={16} style={{ color: 'var(--color-accent)' }} />
-          <span style={{
-            fontSize: '0.6875rem',
-            fontWeight: 700,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            color: 'var(--color-accent)',
-          }}>
-            Resume Generator
-          </span>
-        </div>
-        <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: '2rem',
-          fontWeight: 800,
-          color: 'var(--color-text-primary)',
-          marginBottom: '0.375rem',
-          letterSpacing: '-0.01em',
-        }}>
-          Forge Your Resume
-        </h1>
-        <p style={{
-          fontSize: '0.9375rem',
-          color: 'var(--color-text-secondary)',
-          maxWidth: 600,
-          lineHeight: 1.6,
-        }}>
-          AI-powered resume generation optimized for ATS algorithms and modern hiring standards.
-        </p>
-      </header>
+    <>
+      {loading && <Loader />}
+      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-6xl mx-auto">
+        <PageHeader
+          icon={Sparkles}
+          badge="Resume Generator"
+          title="Forge Your Resume"
+          subtitle="AI-powered resume generation optimized for ATS algorithms and modern hiring standards."
+        />
 
-      {/* Error Banner */}
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            style={{ marginBottom: '1.5rem' }}
-          >
-            <div className="alert alert-error">
-              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
-              <div>
-                <div className="alert-title" style={{ marginBottom: 2 }}>Generation Failed</div>
-                <span style={{ fontSize: '0.8125rem' }}>{error}</span>
+        <AnimatePresence>
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="mb-6 overflow-hidden"
+            >
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/20">
+                <AlertCircle size={18} className="text-red-400 shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-semibold text-red-400 mb-0.5">Generation Failed</p>
+                  <p className="text-xs text-red-400/80">{error}</p>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-      {/* Form */}
-      <Form onSubmit={handleSubmit} loading={loading} />
-    </motion.div>
+        <Form onSubmit={handleSubmit} loading={loading} />
+      </motion.div>
+    </>
   );
 }

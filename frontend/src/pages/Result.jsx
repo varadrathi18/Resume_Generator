@@ -1,93 +1,51 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getBackendUrl } from '../api';
 import ResumePreview from '../components/ResumePreview';
+import ScoreRing from '../components/ScoreRing';
+import GlowCard from '../components/GlowCard';
 import {
-  CheckCircle,
-  TrendingUp,
-  AlertTriangle,
-  Download,
-  FileText,
-  Sparkles,
-  ArrowLeft,
+  CheckCircle, TrendingUp, AlertTriangle, Download, FileText,
+  Sparkles, ArrowLeft,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 /**
  * Compute a local ATS score by analyzing the resume text.
  * Used as a fallback when the backend Gemini-based scoring is unavailable.
- * 
- * Scoring criteria (each out of 100, weighted):
- *  - Section structure (20%): checks for key headings (Summary, Skills, Experience, Education, Projects)
- *  - Bullet point density (15%): resumes should have many bullet points
- *  - Action verb usage (20%): strong action verbs at the start of bullets
- *  - Quantifiable metrics (15%): numbers, percentages, dollar amounts
- *  - Keyword density (15%): domain-relevant professional keywords
- *  - Formatting quality (15%): proper heading hierarchy, length adequacy
  */
-function computeLocalAtsScore(resumeText, domain) {
+function computeLocalAtsScore(resumeText) {
   if (!resumeText || resumeText.length < 50) return 45;
-
   const text = resumeText.toLowerCase();
   const lines = resumeText.split('\n').filter(l => l.trim());
 
-  // 1. Section structure (20%) — check for key resume sections
   const keyHeadings = ['summary', 'skills', 'experience', 'education', 'projects', 'competencies', 'certifications'];
   const foundHeadings = keyHeadings.filter(h => text.includes(h));
   const sectionScore = Math.min(100, (foundHeadings.length / 4) * 100);
 
-  // 2. Bullet point density (15%) — count bullet points
   const bulletLines = lines.filter(l => /^\s*[-•*]\s/.test(l));
   const bulletScore = Math.min(100, (bulletLines.length / 8) * 100);
 
-  // 3. Action verb usage (20%) — check bullets start with strong verbs
-  const actionVerbs = [
-    'led', 'managed', 'developed', 'engineered', 'designed', 'implemented',
-    'built', 'created', 'optimized', 'improved', 'increased', 'reduced',
-    'deployed', 'architected', 'automated', 'delivered', 'launched',
-    'spearheaded', 'drove', 'negotiated', 'streamlined', 'analyzed',
-    'coordinated', 'established', 'executed', 'generated', 'maintained',
-    'mentored', 'pioneered', 'resolved', 'transformed', 'achieved',
-  ];
+  const actionVerbs = ['led','managed','developed','engineered','designed','implemented','built','created','optimized','improved','increased','reduced','deployed','architected','automated','delivered','launched','spearheaded','drove','negotiated','streamlined','analyzed','coordinated','established','executed','generated','maintained','mentored','pioneered','resolved','transformed','achieved'];
   const bulletsWithVerbs = bulletLines.filter(line => {
     const content = line.replace(/^\s*[-•*]\s*\**/, '').toLowerCase().trim();
     return actionVerbs.some(v => content.startsWith(v));
   });
-  const verbScore = bulletLines.length > 0
-    ? Math.min(100, (bulletsWithVerbs.length / bulletLines.length) * 120)
-    : 30;
+  const verbScore = bulletLines.length > 0 ? Math.min(100, (bulletsWithVerbs.length / bulletLines.length) * 120) : 30;
 
-  // 4. Quantifiable metrics (15%) — look for numbers, %, $
-  const metricPatterns = /(\d+%|\$[\d,]+|\d+\+?\s*(users|clients|projects|teams|years|months|revenue|sales|customers)|\d+x\b)/gi;
-  const metricMatches = text.match(metricPatterns) || [];
+  const metricMatches = text.match(/(\d+%|\$[\d,]+|\d+\+?\s*(users|clients|projects|teams|years|months|revenue|sales|customers)|\d+x\b)/gi) || [];
   const metricScore = Math.min(100, (metricMatches.length / 4) * 100);
 
-  // 5. Keyword density (15%) — professional keywords present
-  const professionalKeywords = [
-    'team', 'project', 'result', 'performance', 'strategy', 'impact',
-    'stakeholder', 'cross-functional', 'scalable', 'agile', 'deadline',
-    'budget', 'roi', 'kpi', 'communication', 'leadership', 'solution',
-  ];
+  const professionalKeywords = ['team','project','result','performance','strategy','impact','stakeholder','cross-functional','scalable','agile','deadline','budget','roi','kpi','communication','leadership','solution'];
   const foundKeywords = professionalKeywords.filter(k => text.includes(k));
   const keywordScore = Math.min(100, (foundKeywords.length / 5) * 100);
 
-  // 6. Formatting quality (15%) — heading hierarchy, reasonable length
   const hasH1 = /^#\s/m.test(resumeText);
   const h2Count = (resumeText.match(/^##\s/gm) || []).length;
   const wordCount = resumeText.split(/\s+/).length;
   const lengthOk = wordCount >= 150 && wordCount <= 1200;
   const formatScore = ((hasH1 ? 30 : 0) + Math.min(40, h2Count * 10) + (lengthOk ? 30 : 15));
 
-  // Weighted average
-  const weighted = Math.round(
-    sectionScore * 0.20 +
-    bulletScore * 0.15 +
-    verbScore * 0.20 +
-    metricScore * 0.15 +
-    keywordScore * 0.15 +
-    formatScore * 0.15
-  );
-
-  // Clamp to realistic range (40-98)
+  const weighted = Math.round(sectionScore * 0.20 + bulletScore * 0.15 + verbScore * 0.20 + metricScore * 0.15 + keywordScore * 0.15 + formatScore * 0.15);
   return Math.max(40, Math.min(98, weighted));
 }
 
@@ -98,31 +56,17 @@ export default function Result() {
 
   if (!result) {
     return (
-      <div style={{
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        minHeight: '60vh', padding: '2rem',
-      }}>
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="card"
-          style={{ padding: '3rem', textAlign: 'center', maxWidth: 400 }}
-        >
-          <div style={{
-            width: 64, height: 64, borderRadius: '50%',
-            background: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.2)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 1.25rem',
-          }}>
-            <AlertTriangle size={32} style={{ color: 'var(--color-warning)' }} />
+      <div className="flex items-center justify-center min-h-[60vh] p-6">
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
+          className="bg-[var(--color-bg-card)] border border-[var(--color-border)] rounded-2xl p-8 text-center max-w-sm">
+          <div className="w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mx-auto mb-4">
+            <AlertTriangle size={30} className="text-yellow-500" />
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-text-primary)', marginBottom: '0.5rem' }}>
-            No Resume Found
-          </h2>
-          <p style={{ fontSize: '0.875rem', color: 'var(--color-text-secondary)', marginBottom: '1.5rem', lineHeight: 1.6 }}>
+          <h2 className="font-[var(--font-display)] text-xl font-bold text-white mb-2">No Resume Found</h2>
+          <p className="text-sm text-[var(--color-text-secondary)] mb-5 leading-relaxed">
             Generate a resume first to see your results and ATS analysis here.
           </p>
-          <button onClick={() => navigate('/')} className="btn-primary" style={{ width: '100%' }}>
+          <button onClick={() => navigate('/')} className="w-full flex items-center justify-center gap-2 px-5 py-2.5 bg-[var(--color-accent)] text-white text-sm font-semibold rounded-xl shadow-md shadow-[var(--color-accent)]/25 hover:bg-[var(--color-accent-light)] transition-all cursor-pointer">
             <ArrowLeft size={16} /> Back to Generator
           </button>
         </motion.div>
@@ -130,208 +74,134 @@ export default function Result() {
     );
   }
 
-  // Use backend Gemini score if available, otherwise compute locally from resume text
-  const atsScore = result.resume_score?.ats_score
-    || result.resume_score?.overall_score
-    || computeLocalAtsScore(result.resume_text, result.domain);
+  const atsScore = result.resume_score?.ats_score || result.resume_score?.overall_score || computeLocalAtsScore(result.resume_text);
   const classification = result.classification || {};
-  const circumference = 100;
-  const offset = circumference - atsScore;
+  const scoreBreakdown = result.resume_score || {};
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: { staggerChildren: 0.1 }
-    }
-  };
+  const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
+  const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 15 },
-    show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } }
-  };
+  const categories = [
+    { key: 'content_quality', label: 'Content Quality', color: 'var(--color-teal)' },
+    { key: 'formatting', label: 'Formatting', color: 'var(--color-blue)' },
+    { key: 'domain_relevance', label: 'Domain Match', color: 'var(--color-purple)' },
+    { key: 'professionalism', label: 'Professionalism', color: 'var(--color-amber)' },
+  ];
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="show"
-      style={{ width: '100%', maxWidth: 1300, margin: '0 auto' }}
-    >
-      {/* Page Header */}
-      <motion.header variants={itemVariants} style={{ marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-          <FileText size={14} style={{ color: 'var(--color-text-muted)' }} />
-          <span style={{
-            fontSize: '0.8125rem',
-            color: 'var(--color-text-secondary)',
-          }}>
-            Library
-          </span>
-          <span style={{ color: 'var(--color-text-muted)' }}>/</span>
-          <span style={{
-            fontSize: '0.8125rem',
-            fontWeight: 600,
-            color: 'var(--color-text-primary)',
-          }}>
-            {result.pdf_filename || 'Generated_Resume'}
-          </span>
-        </div>
-      </motion.header>
+    <motion.div variants={stagger} initial="hidden" animate="show" className="w-full max-w-7xl mx-auto">
+      {/* Breadcrumb */}
+      <motion.div variants={item} className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] mb-6">
+        <FileText size={12} /> <span>Library</span> <span>/</span>
+        <span className="font-semibold text-[var(--color-text-primary)]">{result.pdf_filename || 'Generated_Resume'}</span>
+      </motion.div>
 
-      {/* Main two-column layout */}
-      <div style={{ display: 'flex', gap: '2rem', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-
-        {/* LEFT COLUMN — Analytics */}
-        <div style={{ flex: '1 1 min(100%, 320px)', maxWidth: '400px', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-
-          {/* ATS Score Card */}
-          <motion.div variants={itemVariants} className="card" style={{ padding: '1.5rem' }}>
-            <h3 style={{
-              fontSize: '0.6875rem', fontWeight: 700,
-              letterSpacing: '0.12em', textTransform: 'uppercase',
-              color: 'var(--color-text-muted)', marginBottom: '1.25rem',
-            }}>
-              ATS Score Analysis
-            </h3>
-
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h2 style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: '1.75rem', fontWeight: 800,
-                  color: 'var(--color-text-primary)',
-                  marginBottom: '0.25rem',
-                  lineHeight: 1.2,
-                }}>
-                  {atsScore >= 80 ? 'Highly' : atsScore >= 60 ? 'Moderately' : 'Needs'}
-                  <br />
-                  {atsScore >= 80 ? 'Optimized' : atsScore >= 60 ? 'Optimized' : 'Improvement'}
-                </h2>
-                <p style={{
-                  fontSize: '0.8125rem', color: 'var(--color-text-secondary)',
-                  lineHeight: 1.5, maxWidth: 200,
-                }}>
-                  Your resume is in the top {Math.max(5, 100 - atsScore + 5)}% of applicants for "{classification.domain_display || 'Professional'}".
-                </p>
-              </div>
-
-              {/* Radial Dial */}
-              <div className="ats-dial-container">
-                <svg className="ats-dial-svg" viewBox="0 0 36 36">
-                  <path
-                    className="ats-dial-bg"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                  />
-                  <motion.path
-                    initial={{ strokeDasharray: "100, 100", strokeDashoffset: 100 }}
-                    animate={{ strokeDashoffset: offset }}
-                    transition={{ duration: 1.5, ease: "easeOut", delay: 0.3 }}
-                    className="ats-dial-progress"
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                    strokeDasharray="100, 100"
-                  />
-                </svg>
-                <div className="ats-score-value">
-                  <motion.span
-                    initial={{ opacity: 0, scale: 0 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.8, type: 'spring' }}
-                    className="ats-score-number"
-                  >
-                    {atsScore}%
-                  </motion.span>
-                  <span className="ats-score-label">Ready</span>
+      <div className="flex flex-col lg:flex-row gap-6 items-start">
+        {/* ── LEFT: Score & Analysis ──────────────────────── */}
+        <div className="w-full lg:w-96 flex flex-col gap-4 shrink-0">
+          {/* ATS Score */}
+          <motion.div variants={item}>
+            <GlowCard animate={false}>
+              <h3 className="text-[0.6875rem] font-bold tracking-[0.12em] uppercase text-[var(--color-text-muted)] mb-4">ATS Score Analysis</h3>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-[var(--font-display)] text-2xl font-extrabold text-white leading-tight mb-1">
+                    {atsScore >= 80 ? 'Highly' : atsScore >= 60 ? 'Moderately' : 'Needs'}<br />
+                    {atsScore >= 60 ? 'Optimized' : 'Improvement'}
+                  </h2>
+                  <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed max-w-[180px]">
+                    Your resume is in the top {Math.max(5, 100 - atsScore + 5)}% for "{classification.domain_display || 'Professional'}".
+                  </p>
                 </div>
+                <ScoreRing score={atsScore} size={100} label="Ready" />
               </div>
-            </div>
+            </GlowCard>
           </motion.div>
 
-          {/* Forge Enhancements */}
-          <motion.div variants={itemVariants} className="card" style={{ padding: '1.5rem' }}>
-            <h3 style={{
-              fontSize: '0.9375rem', fontWeight: 700,
-              color: 'var(--color-text-primary)',
-              display: 'flex', alignItems: 'center', gap: '0.5rem',
-              marginBottom: '0.75rem',
-            }}>
-              <Sparkles size={16} style={{ color: 'var(--color-accent)' }} />
-              Forge Enhancements
-            </h3>
+          {/* Score Breakdown */}
+          {Object.keys(scoreBreakdown).length > 0 && (
+            <motion.div variants={item}>
+              <GlowCard animate={false}>
+                <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                  <TrendingUp size={15} className="text-[var(--color-teal)]" /> Score Breakdown
+                </h3>
+                <div className="flex flex-col gap-3">
+                  {categories.map(cat => {
+                    const val = scoreBreakdown[cat.key] || 0;
+                    return (
+                      <div key={cat.key}>
+                        <div className="flex justify-between text-xs mb-1">
+                          <span className="font-medium text-[var(--color-text-secondary)]">{cat.label}</span>
+                          <span className="font-bold text-[var(--color-text-primary)]">{val}%</span>
+                        </div>
+                        <div className="h-1.5 bg-[var(--color-bg-elevated)] rounded-full overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${val}%` }}
+                            transition={{ duration: 1, delay: 0.3, ease: 'easeOut' }}
+                            className="h-full rounded-full"
+                            style={{ background: cat.color }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </GlowCard>
+            </motion.div>
+          )}
 
-            <div>
-              <div className="enhancement-item">
-                <div className="enhancement-icon success">
-                  <CheckCircle size={16} />
-                </div>
-                <div>
-                  <div className="enhancement-title">Action Verbs Enhanced</div>
-                  <div className="enhancement-desc">
-                    Replaced {Math.floor(Math.random() * 10) + 8} passive phrases with high-impact industry verbs.
+          {/* Enhancements */}
+          <motion.div variants={item}>
+            <GlowCard animate={false}>
+              <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+                <Sparkles size={15} className="text-[var(--color-accent)]" /> Forge Enhancements
+              </h3>
+              <div className="flex flex-col gap-3">
+                {[
+                  { icon: CheckCircle, color: 'text-[var(--color-success)]', bg: 'bg-green-500/10', title: 'Action Verbs Enhanced', desc: `Replaced ${Math.floor(Math.random() * 10) + 8} passive phrases with high-impact verbs.` },
+                  { icon: TrendingUp, color: 'text-[var(--color-blue)]', bg: 'bg-blue-500/10', title: 'Quantifiable Metrics', desc: `AI added ${Math.floor(Math.random() * 4) + 3} revenue-based outcomes.` },
+                  { icon: AlertTriangle, color: 'text-[var(--color-warning)]', bg: 'bg-yellow-500/10', title: `Missing Keyword: "${classification.domain_display || 'Leadership'}"`, desc: 'Add relevant keywords to improve ATS match.' },
+                ].map((e, i) => (
+                  <div key={i} className="flex gap-3">
+                    <div className={`w-8 h-8 rounded-lg ${e.bg} flex items-center justify-center shrink-0`}>
+                      <e.icon size={14} className={e.color} />
+                    </div>
+                    <div>
+                      <p className="text-xs font-semibold text-[var(--color-text-primary)]">{e.title}</p>
+                      <p className="text-[0.6875rem] text-[var(--color-text-secondary)] mt-0.5">{e.desc}</p>
+                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-
-              <div className="enhancement-item">
-                <div className="enhancement-icon info">
-                  <TrendingUp size={16} />
-                </div>
-                <div>
-                  <div className="enhancement-title">Quantifiable Metrics</div>
-                  <div className="enhancement-desc">
-                    AI added {Math.floor(Math.random() * 4) + 3} revenue-based outcomes based on your experience.
-                  </div>
-                </div>
-              </div>
-
-              <div className="enhancement-item">
-                <div className="enhancement-icon warning">
-                  <AlertTriangle size={16} />
-                </div>
-                <div>
-                  <div className="enhancement-title">Missing Keyword: "{classification.domain_display || 'Leadership'}"</div>
-                  <div className="enhancement-desc">
-                    Add relevant keywords to your summary to better match the job description.
-                  </div>
-                </div>
-              </div>
-            </div>
+            </GlowCard>
           </motion.div>
 
           {/* Export Buttons */}
-          <motion.div variants={itemVariants} className="export-btn-group">
+          <motion.div variants={item} className="flex gap-3">
             {result.pdf_url && (
-              <a href={getBackendUrl(result.pdf_url)} download className="export-btn primary">
-                <Download size={16} />
-                Export PDF
+              <a href={getBackendUrl(result.pdf_url)} download
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[var(--color-accent)] text-white text-sm font-semibold rounded-xl shadow-md shadow-[var(--color-accent)]/25 hover:bg-[var(--color-accent-light)] transition-all">
+                <Download size={15} /> PDF
               </a>
             )}
             {result.docx_url && (
-              <a href={getBackendUrl(result.docx_url)} download className="export-btn">
-                <FileText size={16} />
-                Word Doc
+              <a href={getBackendUrl(result.docx_url)} download
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm font-semibold rounded-xl hover:bg-[var(--color-bg-elevated)] transition-all">
+                <FileText size={15} /> DOCX
               </a>
             )}
           </motion.div>
 
-          {/* Open Editor Link */}
-          <motion.div variants={itemVariants} style={{ textAlign: 'center' }}>
-            <button
-              className="btn-outline"
-              style={{ width: '100%' }}
-              onClick={() => navigate('/')}
-            >
-              <Sparkles size={16} style={{ color: 'var(--color-accent)' }} />
-              Open Full AI Forge Editor
+          <motion.div variants={item}>
+            <button onClick={() => navigate('/ai-forge')} className="w-full flex items-center justify-center gap-2 py-2.5 bg-transparent border border-[var(--color-border)] text-[var(--color-text-secondary)] text-sm font-semibold rounded-xl hover:bg-[var(--color-bg-card)] hover:text-[var(--color-text-primary)] transition-all cursor-pointer">
+              <Sparkles size={14} className="text-[var(--color-accent)]" /> Generate Another
             </button>
           </motion.div>
         </div>
 
-        {/* RIGHT COLUMN — Resume Preview */}
-        <motion.div
-          variants={itemVariants}
-          style={{ flex: '999 1 500px', minWidth: '0', width: '100%', overflowX: 'auto', paddingBottom: '2rem' }}
-        >
+        {/* ── RIGHT: Resume Preview ──────────────────────── */}
+        <motion.div variants={item} className="flex-1 min-w-0 w-full">
           <ResumePreview data={result} />
         </motion.div>
       </div>
