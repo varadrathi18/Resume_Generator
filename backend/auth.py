@@ -42,7 +42,7 @@ def generate_token(email, name):
     payload = {
         'email': email,
         'name': name,
-        'exp': datetime.utcnow() + timedelta(hours=24)
+        'exp': datetime.utcnow() + timedelta(minutes=10)
     }
     return jwt.encode(payload, get_jwt_secret(), algorithm='HS256')
 

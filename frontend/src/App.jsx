@@ -17,9 +17,22 @@ import Signup from './pages/Signup';
 
 const GOOGLE_CLIENT_ID = "387539609566-1k1rqia6rhi0ensgnjcuamf9823nfiqr.apps.googleusercontent.com";
 
+const isTokenExpired = (token) => {
+  if (!token) return true;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp * 1000 < Date.now();
+  } catch (e) {
+    return true;
+  }
+};
+
 const ProtectedRoute = ({ children }) => {
   const token = localStorage.getItem('token');
-  if (!token) return <Navigate to="/login" replace />;
+  if (!token || isTokenExpired(token)) {
+    localStorage.removeItem('token');
+    return <Navigate to="/signup" replace />;
+  }
   return children;
 };
 
