@@ -13,6 +13,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Automatically log out if backend rejects the token or user is not found (wiped DB)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      if (error.response.status === 401 || (error.response.status === 404 && error.config.url.includes('/api/user/profile'))) {
+        localStorage.removeItem('token');
+        window.location.href = '/signup';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
 
 // Helper to build full backend URLs (for download links, images, etc.)
