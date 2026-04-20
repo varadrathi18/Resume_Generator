@@ -85,3 +85,5 @@ test_env/
 anaconda_projects/
 .virtual_documents/
 .ipynb_checkpoints/
+frontend/.env.development
+frontend/.env.production
