@@ -32,7 +32,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
         hidden md:flex flex-col w-[260px] min-w-[260px] h-screen
         bg-[var(--color-bg-sidebar)] border-r border-[var(--color-border)]
         sticky top-0 z-40 overflow-y-auto overflow-x-hidden
-        max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50
+        max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-[60]
         max-md:transition-transform max-md:duration-300 max-md:ease-[cubic-bezier(0.4,0,0.2,1)]
         ${isOpen ? 'max-md:!flex max-md:translate-x-0 max-md:shadow-2xl' : 'max-md:-translate-x-full'}
       `}

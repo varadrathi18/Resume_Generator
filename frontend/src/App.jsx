@@ -67,7 +67,7 @@ const DashboardLayout = ({ children }) => {
       {/* Mobile overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-45 md:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] md:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}

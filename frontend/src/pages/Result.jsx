@@ -187,7 +187,7 @@ export default function Result() {
             )}
             {result.docx_url && (
               <a href={getBackendUrl(result.docx_url)} download
-                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm font-semibold rounded-xl hover:bg-[var(--color-bg-elevated)] transition-all">
+                className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-[var(--color-bg-card)] border border-[var(--color-border)] text-white text-sm font-semibold rounded-xl hover:bg-[var(--color-bg-elevated)] transition-all">
                 <FileText size={15} /> DOCX
               </a>
             )}
