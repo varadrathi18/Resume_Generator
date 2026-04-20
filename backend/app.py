@@ -157,11 +157,21 @@ def generate(current_user):
         pdf_filename = os.path.basename(pdf_path)
         docx_filename = os.path.basename(docx_path)
 
-        # Build the response immediately — don't wait for scoring/email/DB
+        # 6. Score the resume (synchronous — needed for frontend display)
+        resume_score = None
+        try:
+            scoring_prompt = build_scoring_prompt(resume_text, domain)
+            resume_score = score_resume(scoring_prompt)
+            logger.info(f"Resume scored: {resume_score}")
+        except Exception as e:
+            logger.warning(f"Resume scoring failed: {e}")
+
+        # Build the response with scoring data included
         response_data = {
             "domain": domain,
             "classification": classification.to_dict(),
             "quality_scores": quality_scores,
+            "resume_score": resume_score,
             "resume_text": resume_text,
             "resume_html": resume_html,
             "pdf_url": f"/api/download/{pdf_filename}",
@@ -170,20 +180,12 @@ def generate(current_user):
             "docx_filename": docx_filename,
         }
 
-        # 6. Fire-and-forget: scoring, email, DB save in background
+        # 7. Fire-and-forget: email and DB save in background
         user_email = current_user.get("email", "").strip() if current_user else data.get("email", "").strip()
 
         def _background_tasks():
             """Run non-critical tasks after the response is sent."""
             try:
-                # Score the resume (optional Gemini call)
-                resume_score = None
-                try:
-                    scoring_prompt = build_scoring_prompt(resume_text, domain)
-                    resume_score = score_resume(scoring_prompt)
-                except Exception:
-                    pass
-
                 # Email the resume
                 if user_email and Config.EMAIL_ENABLED:
                     try:

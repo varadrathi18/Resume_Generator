@@ -12,6 +12,85 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
+/**
+ * Compute a local ATS score by analyzing the resume text.
+ * Used as a fallback when the backend Gemini-based scoring is unavailable.
+ * 
+ * Scoring criteria (each out of 100, weighted):
+ *  - Section structure (20%): checks for key headings (Summary, Skills, Experience, Education, Projects)
+ *  - Bullet point density (15%): resumes should have many bullet points
+ *  - Action verb usage (20%): strong action verbs at the start of bullets
+ *  - Quantifiable metrics (15%): numbers, percentages, dollar amounts
+ *  - Keyword density (15%): domain-relevant professional keywords
+ *  - Formatting quality (15%): proper heading hierarchy, length adequacy
+ */
+function computeLocalAtsScore(resumeText, domain) {
+  if (!resumeText || resumeText.length < 50) return 45;
+
+  const text = resumeText.toLowerCase();
+  const lines = resumeText.split('\n').filter(l => l.trim());
+
+  // 1. Section structure (20%) — check for key resume sections
+  const keyHeadings = ['summary', 'skills', 'experience', 'education', 'projects', 'competencies', 'certifications'];
+  const foundHeadings = keyHeadings.filter(h => text.includes(h));
+  const sectionScore = Math.min(100, (foundHeadings.length / 4) * 100);
+
+  // 2. Bullet point density (15%) — count bullet points
+  const bulletLines = lines.filter(l => /^\s*[-•*]\s/.test(l));
+  const bulletScore = Math.min(100, (bulletLines.length / 8) * 100);
+
+  // 3. Action verb usage (20%) — check bullets start with strong verbs
+  const actionVerbs = [
+    'led', 'managed', 'developed', 'engineered', 'designed', 'implemented',
+    'built', 'created', 'optimized', 'improved', 'increased', 'reduced',
+    'deployed', 'architected', 'automated', 'delivered', 'launched',
+    'spearheaded', 'drove', 'negotiated', 'streamlined', 'analyzed',
+    'coordinated', 'established', 'executed', 'generated', 'maintained',
+    'mentored', 'pioneered', 'resolved', 'transformed', 'achieved',
+  ];
+  const bulletsWithVerbs = bulletLines.filter(line => {
+    const content = line.replace(/^\s*[-•*]\s*\**/, '').toLowerCase().trim();
+    return actionVerbs.some(v => content.startsWith(v));
+  });
+  const verbScore = bulletLines.length > 0
+    ? Math.min(100, (bulletsWithVerbs.length / bulletLines.length) * 120)
+    : 30;
+
+  // 4. Quantifiable metrics (15%) — look for numbers, %, $
+  const metricPatterns = /(\d+%|\$[\d,]+|\d+\+?\s*(users|clients|projects|teams|years|months|revenue|sales|customers)|\d+x\b)/gi;
+  const metricMatches = text.match(metricPatterns) || [];
+  const metricScore = Math.min(100, (metricMatches.length / 4) * 100);
+
+  // 5. Keyword density (15%) — professional keywords present
+  const professionalKeywords = [
+    'team', 'project', 'result', 'performance', 'strategy', 'impact',
+    'stakeholder', 'cross-functional', 'scalable', 'agile', 'deadline',
+    'budget', 'roi', 'kpi', 'communication', 'leadership', 'solution',
+  ];
+  const foundKeywords = professionalKeywords.filter(k => text.includes(k));
+  const keywordScore = Math.min(100, (foundKeywords.length / 5) * 100);
+
+  // 6. Formatting quality (15%) — heading hierarchy, reasonable length
+  const hasH1 = /^#\s/m.test(resumeText);
+  const h2Count = (resumeText.match(/^##\s/gm) || []).length;
+  const wordCount = resumeText.split(/\s+/).length;
+  const lengthOk = wordCount >= 150 && wordCount <= 1200;
+  const formatScore = ((hasH1 ? 30 : 0) + Math.min(40, h2Count * 10) + (lengthOk ? 30 : 15));
+
+  // Weighted average
+  const weighted = Math.round(
+    sectionScore * 0.20 +
+    bulletScore * 0.15 +
+    verbScore * 0.20 +
+    metricScore * 0.15 +
+    keywordScore * 0.15 +
+    formatScore * 0.15
+  );
+
+  // Clamp to realistic range (40-98)
+  return Math.max(40, Math.min(98, weighted));
+}
+
 export default function Result() {
   const { state } = useLocation();
   const navigate = useNavigate();
@@ -51,7 +130,10 @@ export default function Result() {
     );
   }
 
-  const atsScore = result.resume_score?.ats_score || result.resume_score?.overall_score || 88;
+  // Use backend Gemini score if available, otherwise compute locally from resume text
+  const atsScore = result.resume_score?.ats_score
+    || result.resume_score?.overall_score
+    || computeLocalAtsScore(result.resume_text, result.domain);
   const classification = result.classification || {};
   const circumference = 100;
   const offset = circumference - atsScore;
