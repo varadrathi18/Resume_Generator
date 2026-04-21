@@ -1,0 +1,40 @@
+@startuml ResumeForge_Flowchart
+
+!theme vibrant
+skinparam backgroundColor #f8f9fa
+skinparam ActivityBackgroundColor #e9ecef
+skinparam ActivityBorderColor #343a40
+skinparam ActivityDiamondBackgroundColor #ffc107
+skinparam ActivityDiamondBorderColor #343a40
+skinparam ArrowColor #007bff
+skinparam defaultFontName Arial
+
+title Automated Resume Generation System - Flowchart
+
+start
+
+repeat
+  :User enters details through input interface;
+  
+  :System performs data validation;
+  
+backward:Return to input stage for correction;
+repeat while (Is data complete and correct?) is (No, Invalid Data)
+
+->Yes, Valid Data;
+
+:ML Domain Classification\n(DistilBERT categorizes user industry);
+
+:Prompt Construction Stage\n(Convert inputs into meaningful prompts);
+
+:Machine Learning Model Processing\n(Gemini Generates resume content);
+
+:Content Structuring Stage\n(Organize into proper resume sections);
+
+:Document Generation\n(Convert content into PDF or DOCX formats);
+
+:Resume presented to user for download;
+
+stop
+
+@enduml

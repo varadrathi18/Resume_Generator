@@ -1,0 +1,45 @@
+@startuml ResumeForge_ActivityDiagram
+
+!theme vibrant
+skinparam backgroundColor #f8f9fa
+skinparam ActivityBackgroundColor #e9ecef
+skinparam ActivityBorderColor #343a40
+skinparam ActivityDiamondBackgroundColor #ffc107
+skinparam ActivityDiamondBorderColor #343a40
+skinparam ArrowColor #007bff
+skinparam defaultFontName Arial
+
+title Automated Resume Generation System - Activity Diagram
+
+|User|
+start
+:Enter Personal Data & Resume Details;
+
+|System Backend|
+:Validate Input Data;
+
+if (Data Valid?) then (No)
+  |User|
+  :Prompt for Missing/Invalid Info;
+  :Update Information;
+  |System Backend|
+  :Re-validate Data;
+endif
+
+|System Backend|
+:ML Domain Classification\n(DistilBERT categorizes user industry);
+:Generate Prompt\n(Structuring inputs for AI);
+
+|Machine Learning Model|
+:Process Prompts & Generate Content;
+
+|System Backend|
+:Structure Content\n(Organize into resume sections);
+:Generate Output Document\n(PDF / DOCX formatting);
+
+|User|
+:Preview and Download Resume;
+
+stop
+
+@enduml

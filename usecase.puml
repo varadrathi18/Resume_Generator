@@ -1,0 +1,38 @@
+@startuml ResumeForge_UseCase
+
+!theme vibrant
+skinparam backgroundColor #f8f9fa
+skinparam defaultFontName Arial
+skinparam usecase {
+    BackgroundColor #e9ecef
+    BorderColor #343a40
+    ArrowColor #007bff
+}
+skinparam actor {
+    BackgroundColor #ffc107
+    BorderColor #343a40
+}
+
+title Automated Resume Generation System - Use Case Diagram
+
+left to right direction
+
+actor "User" as user
+
+rectangle "Automated Resume Generation System" {
+    usecase "Enter Personal Details" as UC_EnterDetails
+    usecase "Update Information" as UC_UpdateInfo
+    usecase "Generate Resume" as UC_GenerateResume
+    usecase "Download Final Output" as UC_Download
+}
+
+user --> UC_EnterDetails
+user --> UC_UpdateInfo
+user --> UC_GenerateResume
+user --> UC_Download
+
+' Optional: Add some includes/extends to make the diagram richer based on the logical flow
+UC_GenerateResume ..> UC_EnterDetails : <<includes>>
+UC_Download ..> UC_GenerateResume : <<includes>>
+
+@enduml

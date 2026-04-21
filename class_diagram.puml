@@ -1,0 +1,73 @@
+@startuml ResumeForge_ClassDiagram
+
+!theme vibrant
+skinparam backgroundColor #f8f9fa
+skinparam defaultFontName Arial
+skinparam class {
+    BackgroundColor #ffffff
+    BorderColor #343a40
+    ArrowColor #007bff
+    HeaderBackgroundColor #e9ecef
+}
+
+title Automated Resume Generation System - Class Diagram
+
+class User {
+    - userId : String
+    - name : String
+    - email : String
+    + enterPersonalDetails() : void
+    + updateInformation() : void
+    + downloadResume() : File
+}
+
+class InputData {
+    - dataId : String
+    - educationDetails : List<String>
+    - experienceDetails : List<String>
+    - skills : List<String>
+    - projects : List<String>
+    + validateData() : boolean
+    + formatData() : String
+}
+
+class Resume {
+    - resumeId : String
+    - status : String
+    - atsScore : float
+    - creationDate : Date
+    + getResumeDetails() : void
+    + updateScore() : void
+}
+
+class MachineLearningModel {
+    - modelType : String
+    - apiKey : String
+    + constructPrompt(data: InputData) : String
+    + generateContent(prompt: String) : String
+    + calculateATSScore(content: String) : float
+}
+
+class MLDomainClassifier {
+    - nlpAlgorithm : String
+    - confidenceScore : float
+    + predictDomain(text: String) : String
+}
+
+class DocumentGenerator {
+    - formatType : String
+    - templateStyle : String
+    + structureContent(content: String) : void
+    + generatePDF() : File
+    + generateDOCX() : File
+}
+
+' Relationships
+User "1" --> "1..*" InputData : Provides
+InputData "1" --> "1" MLDomainClassifier : Classified by
+InputData "1" --> "1" MachineLearningModel : Processed by
+MachineLearningModel "1" --> "1" Resume : Generates content for
+Resume "1" --> "1" DocumentGenerator : Formatted by
+User "1" --> "1..*" Resume : Owns/Downloads
+
+@enduml

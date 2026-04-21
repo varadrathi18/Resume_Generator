@@ -1,0 +1,58 @@
+@startuml ResumeForge_SequenceDiagram
+
+!theme vibrant
+skinparam backgroundColor #f8f9fa
+skinparam defaultFontName Arial
+skinparam sequence {
+    ArrowColor #007bff
+    LifeLineBorderColor #343a40
+    LifeLineBackgroundColor #e9ecef
+    ParticipantBackgroundColor #ffffff
+    ParticipantBorderColor #343a40
+    ParticipantFontColor #000000
+}
+
+title Automated Resume Generation System - Sequence Diagram
+
+actor User
+participant "Interface\n(Frontend)" as Interface
+participant "Validation Module\n(Backend)" as Validation
+participant "ML Classifier\n(DistilBERT)" as MLClass
+participant "ML / AI Engine\n(Gemini)" as AIModel
+participant "Document Generator\n(Backend)" as DocGen
+
+User -> Interface: Enter Resume Details
+activate Interface
+
+Interface -> Validation: Send Data for Validation
+activate Validation
+
+alt Data is Invalid
+    Validation --> Interface: Validation Error Message
+    Interface --> User: Show Error & Prompt for Correction
+else Data is Valid
+    Validation --> Interface: Validation Success
+    
+    Interface -> MLClass: Send Data for Domain Classification
+    activate MLClass
+    MLClass --> Interface: Predicted Industry Domain
+    deactivate MLClass
+    
+    Interface -> AIModel: Send Structured Data & Domain
+    activate AIModel
+    
+    AIModel --> Interface: Generated Resume & ATS Score
+    deactivate AIModel
+    
+    Interface -> DocGen: Send Content for Formatting
+    activate DocGen
+    
+    DocGen --> Interface: Formatted Resume (PDF/DOCX)
+    deactivate DocGen
+    
+    Interface --> User: Display Resume & Enable Download
+end
+
+deactivate Interface
+
+@enduml

@@ -1,0 +1,57 @@
+@startuml ResumeForge_Architecture
+
+!theme vibrant
+skinparam componentStyle uml2
+skinparam backgroundColor #f8f9fa
+skinparam defaultFontName Arial
+
+title ResumeForge - System Architecture
+
+' Actors
+actor "User" as user
+
+' External Services
+cloud "Google OAuth" as google_auth
+cloud "Gemini AI API" as gemini
+database "MongoDB" as mongo
+
+' Frontend (React)
+package "Frontend (React + Vite)" {
+    component "UI Components\n(Tailwind, Framer Motion)" as ui
+    component "Pages\n(Dashboard, Forge, Result, etc.)" as pages
+    component "API Client (Axios)" as api_client
+    
+    user --> ui : Interacts with
+    ui --> pages
+    pages --> api_client : Calls Backend APIs
+    pages ..> google_auth : SSO Login
+}
+
+' Backend (Flask)
+package "Backend (Flask)" {
+    component "API Gateway (app.py)" as app
+    component "Auth Module" as auth
+    component "ML Domain Classifier\n(DistilBERT + TF-IDF)" as classifier
+    component "Prompt Engine" as prompt
+    component "Machine Learning Engine\n(Gemini LLM)" as ai_model
+    component "Document Formatter\n(HTML, PDF, DOCX)" as formatter
+    component "Database Layer" as db
+    component "Email Service" as email
+    
+    api_client --> app : HTTP REST
+    
+    app --> auth : Validates Token
+    app --> classifier : Classifies User Input
+    app --> prompt : Builds Gemini Prompts
+    prompt --> ai_model : Sends Context
+    ai_model --> gemini : API Request
+    gemini --> ai_model : Generated Resume / ATS Score
+    
+    app --> formatter : Formats to PDF/DOCX
+    app --> db : Save / Update Records
+    app --> email : Sends Resume
+    
+    db --> mongo : Read/Write Operations
+}
+
+@enduml
