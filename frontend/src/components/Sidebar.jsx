@@ -79,7 +79,7 @@ export default function Sidebar({ isOpen, setIsOpen }) {
                   text-sm font-medium transition-all duration-200
                   ${isActive
                     ? 'bg-[var(--color-accent)] text-white font-semibold shadow-md shadow-[var(--color-accent)]/25'
-                    : 'text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-hover)] hover:text-[var(--color-text-primary)]'
+                    : 'text-[#c5cdd8] hover:bg-[var(--color-bg-hover)] hover:text-white'
                   }
                 `}
               >

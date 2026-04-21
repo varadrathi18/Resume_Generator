@@ -213,52 +213,6 @@ input, textarea, select, button {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
-   RESULT PAGE — Desktop side-by-side layout (mobile untouched)
-   ═══════════════════════════════════════════════════════════════════════ */
-
-.result-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.result-sidebar {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.result-preview {
-  width: 100%;
-  min-width: 0;
-}
-
-@media (min-width: 1024px) {
-  .result-layout {
-    flex-direction: row;
-    align-items: flex-start;
-    gap: 1.5rem;
-  }
-
-  .result-sidebar {
-    width: 380px;
-    min-width: 380px;
-    flex-shrink: 0;
-    position: sticky;
-    top: 2rem;
-    max-height: calc(100dvh - 4rem);
-    overflow-y: auto;
-    padding-right: 4px;
-  }
-
-  .result-preview {
-    flex: 1;
-    min-width: 0;
-  }
-}
-
-/* ═══════════════════════════════════════════════════════════════════════
    RECHARTS OVERRIDES
    ═══════════════════════════════════════════════════════════════════════ */
 
