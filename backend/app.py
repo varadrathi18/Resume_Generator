@@ -201,13 +201,31 @@ def generate(current_user):
                         logger.error(f"Background email failed: {e}")
 
                 # Save to MongoDB
+                # Compute a fallback score if Gemini scoring failed
+                final_ats = "N/A"
+                if resume_score and resume_score.get("ats_score"):
+                    final_ats = str(resume_score["ats_score"])
+                elif resume_score and resume_score.get("overall_score"):
+                    final_ats = str(resume_score["overall_score"])
+                else:
+                    # Simple heuristic fallback so we never store "N/A"
+                    try:
+                        text_lower = resume_text.lower()
+                        section_count = sum(1 for h in ['summary', 'skills', 'experience', 'education', 'projects'] if h in text_lower)
+                        bullet_count = len([l for l in resume_text.split('\n') if l.strip().startswith(('-', '•', '*'))])
+                        word_count = len(resume_text.split())
+                        fallback = min(95, max(45, int(section_count * 12 + bullet_count * 3 + min(word_count / 10, 20))))
+                        final_ats = str(fallback)
+                    except Exception:
+                        final_ats = "65"
+
                 save_resume_record(
                     name=person_name,
                     email=user_email,
                     target_role=data.get("role", ""),
                     domain=domain,
                     confidence=confidence,
-                    ats_score=resume_score.get("ats_score", "N/A") if resume_score else "N/A",
+                    ats_score=final_ats,
                     quality_grade=quality_scores.get("grade", "B"),
                     pdf_filename=pdf_filename,
                     docx_filename=docx_filename,
@@ -254,6 +272,49 @@ def classify_only():
 def download_file(filename):
     """Download a generated resume file."""
     return send_from_directory(GENERATED_DIR, filename, as_attachment=True)
+
+
+@app.route("/api/resumes/update-score", methods=["POST"])
+@token_required
+def update_resume_score(current_user):
+    """
+    Update the ATS score for a resume record.
+    Called by the frontend after it computes / receives the score so that
+    Dashboard and Impact Scores pages always reflect the latest value.
+    """
+    data = request.get_json(force=True)
+    pdf_filename = data.get("pdf_filename")
+    ats_score = data.get("ats_score")
+
+    if not pdf_filename or ats_score is None:
+        return jsonify({"error": "pdf_filename and ats_score are required"}), 400
+
+    try:
+        from db import resumes_collection, db_ready
+        if not db_ready or resumes_collection is None:
+            return jsonify({"error": "Database not available"}), 503
+
+        update_fields = {"ats_score": str(ats_score)}
+
+        # Optionally persist the full score breakdown
+        score_breakdown = data.get("score_breakdown")
+        if score_breakdown and isinstance(score_breakdown, dict):
+            update_fields["score_breakdown"] = score_breakdown
+
+        result = resumes_collection.update_one(
+            {"email": current_user["email"], "files.pdf": pdf_filename},
+            {"$set": update_fields},
+        )
+
+        if result.modified_count > 0:
+            logger.info(f"✅ Updated ATS score for {pdf_filename} → {ats_score}")
+        else:
+            logger.info(f"ℹ️  No matching resume found for {pdf_filename} (may not be saved yet)")
+
+        return jsonify({"ok": True, "modified": result.modified_count}), 200
+    except Exception as e:
+        logger.error(f"Failed to update resume score: {e}")
+        return jsonify({"error": "Failed to update score"}), 500
 
 
 @app.route("/api/resumes", methods=["GET"])

@@ -13,8 +13,8 @@ export default function ResumePreview({ data }) {
       transition={{ delay: 0.3, duration: 0.4 }}
       className="w-full"
     >
-      {/* Controls */}
-      <div className="flex items-center justify-end gap-2 mb-3">
+      {/* Controls — sticky on desktop so they stay visible while scrolling */}
+      <div className="flex items-center justify-end gap-2 mb-3 lg:sticky lg:top-2 lg:z-10">
         <button
           onClick={() => setZoom(z => Math.max(60, z - 10))}
           className="p-1.5 rounded-lg bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-bg-elevated)] transition-all cursor-pointer"
@@ -41,7 +41,11 @@ export default function ResumePreview({ data }) {
         <div
           id="printable-resume"
           className="resume-preview-panel"
-          style={{ transform: `scale(${zoom / 100})`, transformOrigin: 'top left', width: `${10000 / zoom}%` }}
+          style={{
+            transform: `scale(${zoom / 100})`,
+            transformOrigin: 'top left',
+            width: `${10000 / zoom}%`,
+          }}
           dangerouslySetInnerHTML={{ __html: resume_html }}
         />
       </div>

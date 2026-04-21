@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getBackendUrl } from '../api';
+import { useEffect, useRef } from 'react';
+import api, { getBackendUrl } from '../api';
 import ResumePreview from '../components/ResumePreview';
 import ScoreRing from '../components/ScoreRing';
 import GlowCard from '../components/GlowCard';
@@ -78,6 +79,18 @@ export default function Result() {
   const classification = result.classification || {};
   const scoreBreakdown = result.resume_score || {};
 
+  // Persist the ATS score back to the database so Dashboard/ImpactScores stay in sync
+  const hasSynced = useRef(false);
+  useEffect(() => {
+    if (hasSynced.current || !atsScore || !result.pdf_filename) return;
+    hasSynced.current = true;
+    api.post('/api/resumes/update-score', {
+      pdf_filename: result.pdf_filename,
+      ats_score: atsScore,
+      score_breakdown: scoreBreakdown,
+    }).catch(() => { /* best-effort */ });
+  }, [atsScore, result.pdf_filename, scoreBreakdown]);
+
   const stagger = { hidden: { opacity: 0 }, show: { opacity: 1, transition: { staggerChildren: 0.1 } } };
   const item = { hidden: { opacity: 0, y: 16 }, show: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
@@ -89,16 +102,16 @@ export default function Result() {
   ];
 
   return (
-    <motion.div variants={stagger} initial="hidden" animate="show" className="w-full max-w-7xl mx-auto">
+    <motion.div variants={stagger} initial="hidden" animate="show" className="w-full max-w-[1600px] mx-auto">
       {/* Breadcrumb */}
       <motion.div variants={item} className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] mb-6">
         <FileText size={12} /> <span>Library</span> <span>/</span>
         <span className="font-semibold text-[var(--color-text-primary)]">{result.pdf_filename || 'Generated_Resume'}</span>
       </motion.div>
 
-      <div className="flex flex-col lg:flex-row gap-6 items-start">
+      <div className="result-layout">
         {/* ── LEFT: Score & Analysis ──────────────────────── */}
-        <div className="w-full lg:w-96 flex flex-col gap-4 shrink-0">
+        <div className="result-sidebar">
           {/* ATS Score */}
           <motion.div variants={item}>
             <GlowCard animate={false}>
@@ -201,7 +214,7 @@ export default function Result() {
         </div>
 
         {/* ── RIGHT: Resume Preview ──────────────────────── */}
-        <motion.div variants={item} className="flex-1 min-w-0 w-full">
+        <motion.div variants={item} className="result-preview">
           <ResumePreview data={result} />
         </motion.div>
       </div>
