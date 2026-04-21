@@ -51,24 +51,12 @@ function computeLocalAtsScore(resumeText) {
 }
 
 /** Hook: true when viewport is >= 1024px */
-function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(
-    typeof window !== 'undefined' ? window.innerWidth >= 1024 : false,
-  );
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
-    const handler = (e) => setIsDesktop(e.matches);
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-  return isDesktop;
-}
+// Layout is now CSS-driven via .result-layout — no JS media query needed
 
 export default function Result() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const result = state?.result;
-  const isDesktop = useIsDesktop();
 
   if (!result) {
     return (
@@ -229,48 +217,15 @@ export default function Result() {
         <span className="font-semibold text-[var(--color-text-primary)]">{result.pdf_filename || 'Generated_Resume'}</span>
       </motion.div>
 
-      {/* Desktop: CSS Grid with fixed sidebar  |  Mobile: stacked column */}
-      <div
-        style={
-          isDesktop
-            ? {
-                display: 'grid',
-                gridTemplateColumns: '360px 1fr',
-                gap: '1.5rem',
-                alignItems: 'start',
-              }
-            : {
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1.5rem',
-              }
-        }
-      >
+      {/* Responsive layout: wraps to column on small screens */}
+      <div className="result-layout">
         {/* ── LEFT: Score & Analysis ──────────────────────── */}
-        <div
-          style={
-            isDesktop
-              ? {
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1rem',
-                  position: 'sticky',
-                  top: '2rem',
-                  maxHeight: 'calc(100dvh - 4rem)',
-                  overflowY: 'auto',
-                }
-              : {
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '1rem',
-                }
-          }
-        >
+        <div className="result-sidebar">
           {sidebarContent}
         </div>
 
         {/* ── RIGHT: Resume Preview ──────────────────────── */}
-        <motion.div variants={item} style={{ minWidth: 0, width: '100%' }}>
+        <motion.div variants={item} className="result-preview">
           <ResumePreview data={result} />
         </motion.div>
       </div>

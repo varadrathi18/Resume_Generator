@@ -1,28 +1,40 @@
 import { motion } from 'framer-motion';
 import { ZoomIn, ZoomOut, Printer, RotateCcw } from 'lucide-react';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useMemo } from 'react';
+
+/**
+ * Extract the inner body content from a full HTML document string.
+ * The backend's to_html() returns a complete <!DOCTYPE html>…</html> document
+ * with its own <style> block, <body>, etc.  When injected via dangerouslySetInnerHTML
+ * inside an existing page, the nested <html>/<body> and conflicting styles
+ * break the layout.  This helper strips everything down to the actual resume markup.
+ */
+function extractBodyContent(html) {
+  if (!html) return '';
+
+  // Try to extract content between <body> and </body>
+  const bodyMatch = html.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+  if (bodyMatch) {
+    return bodyMatch[1].trim();
+  }
+
+  // If no body tag found, strip any DOCTYPE / html / head / style tags
+  let cleaned = html;
+  cleaned = cleaned.replace(/<!DOCTYPE[^>]*>/gi, '');
+  cleaned = cleaned.replace(/<\/?html[^>]*>/gi, '');
+  cleaned = cleaned.replace(/<head[\s\S]*?<\/head>/gi, '');
+  cleaned = cleaned.replace(/<\/?body[^>]*>/gi, '');
+  return cleaned.trim();
+}
 
 export default function ResumePreview({ data }) {
   const { resume_html } = data;
   const [zoom, setZoom] = useState(1);
-  const innerRef = useRef(null);
-  const [innerHeight, setInnerHeight] = useState('auto');
 
-  // Measure the natural height of the resume content and scale the wrapper
-  useEffect(() => {
-    if (!innerRef.current) return;
-    const measure = () => {
-      const natural = innerRef.current.scrollHeight;
-      setInnerHeight(natural * zoom);
-    };
-    measure();
-    // Re-measure when zoom changes or content loads
-    const observer = new ResizeObserver(measure);
-    observer.observe(innerRef.current);
-    return () => observer.disconnect();
-  }, [zoom, resume_html]);
+  // Extract just the resume body content, memoized to avoid re-parsing
+  const cleanHtml = useMemo(() => extractBodyContent(resume_html), [resume_html]);
 
-  if (!resume_html) {
+  if (!cleanHtml) {
     return (
       <div
         style={{
@@ -87,26 +99,22 @@ export default function ResumePreview({ data }) {
 
       {/* Resume paper */}
       <div
+        className="resume-paper-wrapper"
         style={{
           borderRadius: '1rem',
           border: '1px solid rgba(255,255,255,0.08)',
           boxShadow: '0 25px 50px -12px rgba(0,0,0,0.4)',
           backgroundColor: '#ffffff',
-          overflow: 'visible',
-          position: 'relative',
-          height: typeof innerHeight === 'number' ? `${innerHeight}px` : 'auto',
+          overflow: 'auto',
         }}
       >
         <div
-          ref={innerRef}
           id="printable-resume"
           className="resume-preview-panel"
           style={{
-            transformOrigin: 'top left',
-            transform: `scale(${zoom})`,
-            width: `${100 / zoom}%`,
+            zoom: zoom,
           }}
-          dangerouslySetInnerHTML={{ __html: resume_html }}
+          dangerouslySetInnerHTML={{ __html: cleanHtml }}
         />
       </div>
     </motion.div>
