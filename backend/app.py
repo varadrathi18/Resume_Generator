@@ -16,6 +16,7 @@ import sys
 import time
 import traceback
 import concurrent.futures
+import re
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
@@ -51,6 +52,11 @@ app = Flask(
 CORS(app, origins=Config.ALLOWED_ORIGINS.split(","))
 
 app.register_blueprint(auth_bp, url_prefix='/api/auth')
+
+
+# ── Background thread pool (module-level so threads outlive requests) ──
+
+_background_executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
 
 
 # ── Load ML models on startup ─────────────────────────────────────────
@@ -110,6 +116,37 @@ def health_check():
     })
 
 
+# ── Input Validation Helpers ─────────────────────────────────────────────
+
+# Patterns that indicate the user didn't provide real content
+_PLACEHOLDER_PATTERNS = re.compile(
+    r'^\s*('
+    r'none|n/?a|na|nil|null|no|nothing|not applicable|not provided|'
+    r'no experience|no projects|no skills|no education|'
+    r'\-|\.|x+|0+|test|asdf|qwer|placeholder'
+    r')\s*$',
+    re.IGNORECASE,
+)
+
+
+def _is_placeholder(value: str) -> bool:
+    """Return True if the value is empty or a common placeholder like 'none', 'n/a', etc."""
+    if not value or not value.strip():
+        return True
+    return bool(_PLACEHOLDER_PATTERNS.match(value.strip()))
+
+
+def _validate_field_content(field_name: str, value: str, min_length: int = 5) -> str | None:
+    """
+    Validate a single form field. Returns an error message if invalid, else None.
+    """
+    if _is_placeholder(value):
+        return f"{field_name} cannot be empty or a placeholder (e.g. 'none', 'n/a')"
+    if len(value.strip()) < min_length:
+        return f"{field_name} is too short — please provide at least {min_length} characters of real content"
+    return None
+
+
 @app.route("/api/generate", methods=["POST"])
 @token_required
 def generate(current_user):
@@ -124,11 +161,27 @@ def generate(current_user):
     """
     data = request.get_json(force=True)
 
-    # Validate required fields
-    required = ["name", "education", "skills"]
-    missing = [f for f in required if not data.get(f) or not str(data.get(f)).strip()]
-    if missing:
-        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+    # ── Strict field validation ────────────────────────────────────
+    # Required fields must exist and contain real content (not "none", "n/a", etc.)
+    validation_errors = []
+    for field, label, min_len in [
+        ("name", "Full Name", 2),
+        ("education", "Education", 10),
+        ("skills", "Skills", 5),
+    ]:
+        raw_value = str(data.get(field, "")).strip()
+        err = _validate_field_content(label, raw_value, min_len)
+        if err:
+            validation_errors.append(err)
+
+    if validation_errors:
+        return jsonify({"error": "; ".join(validation_errors)}), 400
+
+    # Strip out optional fields that are placeholders so Gemini never sees them
+    for opt_field in ["experience", "projects", "certifications", "achievements", "role"]:
+        val = str(data.get(opt_field, "")).strip()
+        if _is_placeholder(val):
+            data.pop(opt_field, None)
 
     try:
         # 1. Standardize & clean
@@ -233,9 +286,8 @@ def generate(current_user):
             except Exception as e:
                 logger.error(f"Background tasks failed: {e}")
 
-        # Launch background tasks (non-blocking)
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        executor.submit(_background_tasks)
+        # Launch background tasks (non-blocking, uses module-level executor)
+        _background_executor.submit(_background_tasks)
 
         return jsonify(response_data)
 

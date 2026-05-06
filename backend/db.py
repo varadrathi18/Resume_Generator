@@ -101,6 +101,9 @@ def get_user_resumes(email: str):
         resumes = []
         for doc in cursor:
             doc["_id"] = str(doc["_id"])
+            # Convert datetime to ISO string so Flask's jsonify can serialize it
+            if isinstance(doc.get("created_at"), datetime):
+                doc["created_at"] = doc["created_at"].isoformat()
             resumes.append(doc)
         return resumes
     except Exception as e:

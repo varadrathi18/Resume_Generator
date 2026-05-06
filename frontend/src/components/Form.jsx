@@ -12,6 +12,27 @@ const INITIAL = {
   type: 'experienced',
 };
 
+// Patterns that indicate a placeholder / non-real input
+const PLACEHOLDER_RE = /^\s*(none|n\/?a|na|nil|null|no|nothing|not applicable|not provided|no experience|no projects|no skills|no education|\-|\.|x+|0+|test|asdf|qwer|placeholder)\s*$/i;
+
+const isPlaceholder = (v) => !v || !v.trim() || PLACEHOLDER_RE.test(v.trim());
+
+const FIELD_RULES = {
+  name:      { label: 'Full Name', min: 2,  required: true },
+  education: { label: 'Education', min: 10, required: true },
+  skills:    { label: 'Skills',    min: 5,  required: true },
+};
+
+function validateField(key, value) {
+  const rule = FIELD_RULES[key];
+  if (!rule) return null; // optional fields are always OK
+  if (isPlaceholder(value))
+    return `${rule.label} cannot be empty or a placeholder (e.g. "none", "n/a")`;
+  if (value.trim().length < rule.min)
+    return `${rule.label} needs at least ${rule.min} characters of real content`;
+  return null;
+}
+
 const STEPS = [
   { id: 1, label: 'Personal Info' },
   { id: 2, label: 'Professional' },
@@ -21,10 +42,54 @@ const STEPS = [
 export default function Form({ onSubmit, loading }) {
   const [form, setForm] = useState(INITIAL);
   const [step, setStep] = useState(1);
+  const [fieldErrors, setFieldErrors] = useState({});
 
-  const update = (key, val) => setForm(prev => ({ ...prev, [key]: val }));
-  const handleSubmit = (e) => { e.preventDefault(); onSubmit(form); };
-  const nextStep = () => { if (step < 3) setStep(step + 1); };
+  const update = (key, val) => {
+    setForm(prev => ({ ...prev, [key]: val }));
+    // Clear error for the field being edited
+    if (fieldErrors[key]) setFieldErrors(prev => ({ ...prev, [key]: null }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    // Final validation before submit
+    const errors = {};
+    for (const [key, rule] of Object.entries(FIELD_RULES)) {
+      const err = validateField(key, form[key]);
+      if (err) errors[key] = err;
+    }
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      return;
+    }
+    // Strip optional fields that are placeholders before sending
+    const cleaned = { ...form };
+    for (const f of ['experience', 'projects', 'role']) {
+      if (isPlaceholder(cleaned[f])) delete cleaned[f];
+    }
+    onSubmit(cleaned);
+  };
+
+  const nextStep = () => {
+    // Validate current step fields before advancing
+    if (step === 1) {
+      const err = validateField('name', form.name);
+      if (err) { setFieldErrors(prev => ({ ...prev, name: err })); return; }
+    }
+    if (step === 2) {
+      const errors = {};
+      for (const key of ['education', 'skills']) {
+        const err = validateField(key, form[key]);
+        if (err) errors[key] = err;
+      }
+      if (Object.keys(errors).length > 0) {
+        setFieldErrors(prev => ({ ...prev, ...errors }));
+        return;
+      }
+    }
+    if (step < 3) setStep(step + 1);
+  };
+
   const prevStep = () => { if (step > 1) setStep(step - 1); };
 
   const slideVariants = {
@@ -34,8 +99,14 @@ export default function Form({ onSubmit, loading }) {
   };
 
   const inputClass = "w-full bg-[var(--color-bg-input)] border border-[var(--color-border)] text-[var(--color-text-primary)] px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200 focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:bg-[var(--color-bg)] placeholder:text-[var(--color-text-muted)]";
+  const inputErrorClass = "w-full bg-[var(--color-bg-input)] border border-red-500/50 text-[var(--color-text-primary)] px-4 py-3 rounded-xl text-sm outline-none transition-all duration-200 focus:border-red-500 focus:ring-2 focus:ring-red-500/20 focus:bg-[var(--color-bg)] placeholder:text-[var(--color-text-muted)]";
   const textareaClass = `${inputClass} resize-y leading-relaxed`;
+  const textareaErrorClass = `${inputErrorClass} resize-y leading-relaxed`;
   const labelClass = "text-xs font-semibold text-[var(--color-text-secondary)] tracking-wide flex items-center gap-1.5";
+  const errorMsgClass = "text-[0.6875rem] text-red-400 mt-1";
+
+  const getInputClass = (field) => fieldErrors[field] ? inputErrorClass : inputClass;
+  const getTextareaClass = (field) => fieldErrors[field] ? textareaErrorClass : textareaClass;
 
   return (
     <form onSubmit={handleSubmit} className="w-full">
@@ -86,7 +157,8 @@ export default function Form({ onSubmit, loading }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="flex flex-col gap-1.5">
                   <label className={labelClass}>Full Name <span className="text-[var(--color-accent)]">*</span></label>
-                  <input type="text" required className={inputClass} placeholder="e.g. Jane Doe" value={form.name} onChange={e => update('name', e.target.value)} />
+                  <input type="text" required className={getInputClass('name')} placeholder="e.g. Jane Doe" value={form.name} onChange={e => update('name', e.target.value)} />
+                  {fieldErrors.name && <p className={errorMsgClass}>{fieldErrors.name}</p>}
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className={labelClass}>Target Role</label>
@@ -103,7 +175,7 @@ export default function Form({ onSubmit, loading }) {
               </div>
 
               <div className="flex justify-end mt-6">
-                <button type="button" onClick={nextStep} disabled={!form.name} className="flex items-center gap-2 px-6 py-2.5 bg-[var(--color-accent)] text-white text-sm font-semibold rounded-xl shadow-md shadow-[var(--color-accent)]/25 hover:bg-[var(--color-accent-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+                <button type="button" onClick={nextStep} disabled={!form.name || isPlaceholder(form.name)} className="flex items-center gap-2 px-6 py-2.5 bg-[var(--color-accent)] text-white text-sm font-semibold rounded-xl shadow-md shadow-[var(--color-accent)]/25 hover:bg-[var(--color-accent-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
                   Continue <ArrowRight size={16} />
                 </button>
               </div>
@@ -165,7 +237,8 @@ export default function Form({ onSubmit, loading }) {
                 <div className="flex flex-col gap-5">
                   <div className="flex flex-col gap-1.5">
                     <label className={labelClass}><Code size={13} className="text-[var(--color-teal)]" /> Skills <span className="text-[var(--color-accent)]">*</span></label>
-                    <textarea className={textareaClass} style={{ minHeight: 90 }} placeholder="React, Node.js, Python, Systems Design, Machine Learning..." value={form.skills} onChange={e => update('skills', e.target.value)} />
+                    <textarea className={getTextareaClass('skills')} style={{ minHeight: 90 }} placeholder="React, Node.js, Python, Systems Design, Machine Learning..." value={form.skills} onChange={e => update('skills', e.target.value)} />
+                    {fieldErrors.skills && <p className={errorMsgClass}>{fieldErrors.skills}</p>}
                   </div>
                   <div className="flex flex-col gap-1.5">
                     <label className={labelClass}><Briefcase size={13} className="text-[var(--color-accent)]" /> Work Experience</label>
@@ -174,7 +247,8 @@ export default function Form({ onSubmit, loading }) {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="flex flex-col gap-1.5">
                       <label className={labelClass}><GraduationCap size={13} className="text-[var(--color-purple)]" /> Education <span className="text-[var(--color-accent)]">*</span></label>
-                      <textarea className={textareaClass} style={{ minHeight: 90 }} placeholder="B.S. Computer Science, MIT" value={form.education} onChange={e => update('education', e.target.value)} />
+                      <textarea className={getTextareaClass('education')} style={{ minHeight: 90 }} placeholder="B.S. Computer Science, MIT" value={form.education} onChange={e => update('education', e.target.value)} />
+                      {fieldErrors.education && <p className={errorMsgClass}>{fieldErrors.education}</p>}
                     </div>
                     <div className="flex flex-col gap-1.5">
                       <label className={labelClass}>Projects</label>
@@ -187,7 +261,7 @@ export default function Form({ onSubmit, loading }) {
                   <button type="button" onClick={prevStep} className="flex items-center gap-2 px-5 py-2.5 bg-[var(--color-bg-card)] border border-[var(--color-border)] text-[var(--color-text-primary)] text-sm font-semibold rounded-xl hover:bg-[var(--color-bg-elevated)] transition-all cursor-pointer">
                     <ArrowLeft size={16} /> Back
                   </button>
-                  <button type="button" onClick={nextStep} disabled={!form.skills || !form.education} className="flex items-center gap-2 px-6 py-2.5 bg-[var(--color-accent)] text-white text-sm font-semibold rounded-xl shadow-md shadow-[var(--color-accent)]/25 hover:bg-[var(--color-accent-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
+                  <button type="button" onClick={nextStep} disabled={!form.skills || !form.education || isPlaceholder(form.skills) || isPlaceholder(form.education)} className="flex items-center gap-2 px-6 py-2.5 bg-[var(--color-accent)] text-white text-sm font-semibold rounded-xl shadow-md shadow-[var(--color-accent)]/25 hover:bg-[var(--color-accent-light)] disabled:opacity-40 disabled:cursor-not-allowed transition-all cursor-pointer">
                     Review <ArrowRight size={16} />
                   </button>
                 </div>

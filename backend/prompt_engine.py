@@ -252,6 +252,11 @@ Start IMMEDIATELY with the candidate's name as an H1 heading.
 6. At LEAST 2 bullet points per experience/project entry.
 7. Include quantifiable metrics (percentages, dollar amounts, counts) wherever possible.
 8. Keep the resume to 1-2 pages in length.
+9. **ABSOLUTELY DO NOT FABRICATE OR INVENT** information. Only use what the candidate provided.
+   - Do NOT invent company names, job titles, project names, or achievements.
+   - Do NOT add technologies or skills the candidate did not mention.
+   - If no experience or projects are provided, do NOT create fake entries — omit those sections entirely.
+   - You may rephrase and enhance the language of provided content, but NEVER add new factual claims.
 
 Generate the resume now:
 """
