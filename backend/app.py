@@ -82,7 +82,7 @@ for warning in Config.validate():
     logger.warning(f"⚠️  {warning}")
 
 logger.info(f"📊 Config: {Config.status_dict()}")
-logger.info(f"📧 Email enabled: {Config.EMAIL_ENABLED} (RESEND={'SET' if Config.RESEND_API_KEY else 'EMPTY'}, SMTP_USER={'SET' if Config.SMTP_USER else 'EMPTY'})")
+logger.info(f"📧 Email enabled: {Config.EMAIL_ENABLED} (BREVO={'SET' if Config.BREVO_API_KEY else 'EMPTY'}, SMTP_USER={'SET' if Config.SMTP_USER else 'EMPTY'})")
 
 
 # ── Request logging middleware ─────────────────────────────────────────

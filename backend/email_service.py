@@ -118,7 +118,7 @@ def _build_email_html(name: str, domain: str, quality_grade: str = "B") -> str:
 import requests
 import base64
 
-def _send_via_resend(
+def _send_via_brevo(
     to_email: str,
     name: str,
     domain: str,
@@ -126,11 +126,12 @@ def _send_via_resend(
     docx_path: str | None,
     quality_grade: str,
 ) -> dict:
-    """Send email using Resend HTTP API (Bypasses Render SMTP port block)"""
-    url = "https://api.resend.com/emails"
+    """Send email using Brevo HTTP API (Bypasses Render SMTP port block, sends to ANYONE)"""
+    url = "https://api.brevo.com/v3/smtp/email"
     headers = {
-        "Authorization": f"Bearer {Config.RESEND_API_KEY}",
-        "Content-Type": "application/json"
+        "accept": "application/json",
+        "api-key": Config.BREVO_API_KEY,
+        "content-type": "application/json"
     }
     
     html_body = _build_email_html(name, domain, quality_grade)
@@ -140,7 +141,7 @@ def _send_via_resend(
         with open(pdf_path, "rb") as f:
             pdf_b64 = base64.b64encode(f.read()).decode('utf-8')
             attachments.append({
-                "filename": f"resume_{name.replace(' ', '_')}.pdf",
+                "name": f"resume_{name.replace(' ', '_')}.pdf",
                 "content": pdf_b64
             })
             
@@ -148,26 +149,35 @@ def _send_via_resend(
         with open(docx_path, "rb") as f:
             docx_b64 = base64.b64encode(f.read()).decode('utf-8')
             attachments.append({
-                "filename": f"resume_{name.replace(' ', '_')}.docx",
+                "name": f"resume_{name.replace(' ', '_')}.docx",
                 "content": docx_b64
             })
 
     payload = {
-        "from": f"{Config.EMAIL_FROM_NAME} <onboarding@resend.dev>",
-        "to": [to_email],
+        "sender": {
+            "name": Config.EMAIL_FROM_NAME,
+            "email": Config.SMTP_USER if Config.SMTP_USER else "varadrathi18@gmail.com"
+        },
+        "to": [
+            {
+                "email": to_email,
+                "name": name
+            }
+        ],
         "subject": f"✨ Your AI-Generated Resume is Ready — {name}",
-        "html": html_body,
-        "attachments": attachments
+        "htmlContent": html_body,
     }
+    if attachments:
+        payload["attachment"] = attachments
 
     response = requests.post(url, json=payload, headers=headers)
     
-    if response.status_code in (200, 201):
-        logger.info(f"📧 Resume emailed successfully to {to_email} via Resend")
+    if response.status_code in (200, 201, 202):
+        logger.info(f"📧 Resume emailed successfully to {to_email} via Brevo")
         return {"success": True, "message": f"Resume sent to {to_email}"}
     else:
-        logger.error(f"Resend API Error: {response.status_code} - {response.text}")
-        return {"success": False, "message": f"Resend API failed: {response.text}"}
+        logger.error(f"Brevo API Error: {response.status_code} - {response.text}")
+        return {"success": False, "message": f"Brevo API failed: {response.text}"}
 
 
 def send_resume_email(
@@ -191,9 +201,9 @@ def send_resume_email(
 
     for attempt in range(1, max_retries + 1):
         try:
-            # 1. Prefer Resend HTTP API (Safe on Render Free Tier)
-            if Config.RESEND_API_KEY:
-                result = _send_via_resend(to_email, name, domain, pdf_path, docx_path, quality_grade)
+            # 1. Prefer Brevo HTTP API (Safe on Render Free Tier, sends to ANYONE)
+            if Config.BREVO_API_KEY:
+                result = _send_via_brevo(to_email, name, domain, pdf_path, docx_path, quality_grade)
                 if result["success"]:
                     return result
                 elif attempt == max_retries:
