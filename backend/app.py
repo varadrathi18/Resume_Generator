@@ -82,6 +82,7 @@ for warning in Config.validate():
     logger.warning(f"⚠️  {warning}")
 
 logger.info(f"📊 Config: {Config.status_dict()}")
+logger.info(f"📧 Email enabled: {Config.EMAIL_ENABLED} (SMTP_USER={'SET' if Config.SMTP_USER else 'EMPTY'}, SMTP_PASSWORD={'SET' if Config.SMTP_PASSWORD else 'EMPTY'})")
 
 
 # ── Request logging middleware ─────────────────────────────────────────
@@ -235,14 +236,16 @@ def generate(current_user):
 
         # 7. Fire-and-forget: email and DB save in background
         user_email = current_user.get("email", "").strip() if current_user else data.get("email", "").strip()
+        logger.info(f"📧 Email decision: user_email='{user_email}', EMAIL_ENABLED={Config.EMAIL_ENABLED}, SMTP_USER={'SET' if Config.SMTP_USER else 'EMPTY'}")
 
         def _background_tasks():
             """Run non-critical tasks after the response is sent."""
             try:
                 # Email the resume
                 if user_email and Config.EMAIL_ENABLED:
+                    logger.info(f"📧 Attempting to send resume email to {user_email}...")
                     try:
-                        send_resume_email(
+                        email_result = send_resume_email(
                             to_email=user_email,
                             name=data.get("name", "Candidate"),
                             domain=domain,
@@ -250,8 +253,11 @@ def generate(current_user):
                             docx_path=docx_path,
                             quality_grade=quality_scores.get("grade", "B"),
                         )
+                        logger.info(f"📧 Email result: {email_result}")
                     except Exception as e:
-                        logger.error(f"Background email failed: {e}")
+                        logger.error(f"📧 Background email EXCEPTION: {e}", exc_info=True)
+                else:
+                    logger.warning(f"📧 Email SKIPPED: user_email={'EMPTY' if not user_email else user_email}, EMAIL_ENABLED={Config.EMAIL_ENABLED}")
 
                 # Save to MongoDB
                 # Compute a fallback score if Gemini scoring failed
