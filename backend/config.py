@@ -38,13 +38,14 @@ class Config:
         os.path.dirname(__file__), "models", "label_encoder.pkl"
     )
 
-    # ── Email (SMTP) ─────────────────────────────────────────────────────
+    # ── Email (SMTP / Resend) ────────────────────────────────────────────
+    RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
     SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USER: str = os.getenv("SMTP_USER", "")
     SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
     EMAIL_FROM_NAME: str = os.getenv("EMAIL_FROM_NAME", "ResumeAI")
-    EMAIL_ENABLED: bool = bool(SMTP_USER and SMTP_PASSWORD)
+    EMAIL_ENABLED: bool = bool(RESEND_API_KEY or (SMTP_USER and SMTP_PASSWORD))
 
     # ── Server ───────────────────────────────────────────────────────────
     SERVER_PORT: int = int(os.getenv("PORT", "8080"))

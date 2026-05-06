@@ -115,6 +115,61 @@ def _build_email_html(name: str, domain: str, quality_grade: str = "B") -> str:
 """
 
 
+import requests
+import base64
+
+def _send_via_resend(
+    to_email: str,
+    name: str,
+    domain: str,
+    pdf_path: str | None,
+    docx_path: str | None,
+    quality_grade: str,
+) -> dict:
+    """Send email using Resend HTTP API (Bypasses Render SMTP port block)"""
+    url = "https://api.resend.com/emails"
+    headers = {
+        "Authorization": f"Bearer {Config.RESEND_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    html_body = _build_email_html(name, domain, quality_grade)
+    
+    attachments = []
+    if pdf_path and os.path.exists(pdf_path):
+        with open(pdf_path, "rb") as f:
+            pdf_b64 = base64.b64encode(f.read()).decode('utf-8')
+            attachments.append({
+                "filename": f"resume_{name.replace(' ', '_')}.pdf",
+                "content": pdf_b64
+            })
+            
+    if docx_path and os.path.exists(docx_path):
+        with open(docx_path, "rb") as f:
+            docx_b64 = base64.b64encode(f.read()).decode('utf-8')
+            attachments.append({
+                "filename": f"resume_{name.replace(' ', '_')}.docx",
+                "content": docx_b64
+            })
+
+    payload = {
+        "from": f"{Config.EMAIL_FROM_NAME} <onboarding@resend.dev>",
+        "to": [to_email],
+        "subject": f"✨ Your AI-Generated Resume is Ready — {name}",
+        "html": html_body,
+        "attachments": attachments
+    }
+
+    response = requests.post(url, json=payload, headers=headers)
+    
+    if response.status_code in (200, 201):
+        logger.info(f"📧 Resume emailed successfully to {to_email} via Resend")
+        return {"success": True, "message": f"Resume sent to {to_email}"}
+    else:
+        logger.error(f"Resend API Error: {response.status_code} - {response.text}")
+        return {"success": False, "message": f"Resend API failed: {response.text}"}
+
+
 def send_resume_email(
     to_email: str,
     name: str,
@@ -126,73 +181,68 @@ def send_resume_email(
 ) -> dict:
     """
     Send the generated resume to the user's email.
-
-    Args:
-        to_email:      Recipient email address
-        name:          Candidate name (for personalization)
-        domain:        Classified domain
-        pdf_path:      Absolute path to generated PDF file
-        docx_path:     Absolute path to generated DOCX file
-        quality_grade: Resume quality grade (A-D)
-        max_retries:   Number of retry attempts
-
-    Returns:
-        dict with 'success' bool and 'message' string
+    Uses Resend API if configured (port 443), otherwise falls back to SMTP (port 587).
     """
     if not Config.EMAIL_ENABLED:
-        return {"success": False, "message": "Email not configured (SMTP credentials missing)"}
+        return {"success": False, "message": "Email not configured (Credentials missing)"}
 
     if not to_email or not to_email.strip():
         return {"success": False, "message": "No recipient email provided"}
 
     for attempt in range(1, max_retries + 1):
         try:
-            msg = MIMEMultipart("mixed")
-            msg["From"] = f"{Config.EMAIL_FROM_NAME} <{Config.SMTP_USER}>"
-            msg["To"] = to_email
-            msg["Subject"] = f"✨ Your AI-Generated Resume is Ready — {name}"
+            # 1. Prefer Resend HTTP API (Safe on Render Free Tier)
+            if Config.RESEND_API_KEY:
+                result = _send_via_resend(to_email, name, domain, pdf_path, docx_path, quality_grade)
+                if result["success"]:
+                    return result
+                elif attempt == max_retries:
+                    return result
+            
+            # 2. Fallback to SMTP (Blocked on Render Free Tier)
+            else:
+                msg = MIMEMultipart("mixed")
+                msg["From"] = f"{Config.EMAIL_FROM_NAME} <{Config.SMTP_USER}>"
+                msg["To"] = to_email
+                msg["Subject"] = f"✨ Your AI-Generated Resume is Ready — {name}"
 
-            # HTML body
-            html_body = _build_email_html(name, domain, quality_grade)
-            msg.attach(MIMEText(html_body, "html", "utf-8"))
+                html_body = _build_email_html(name, domain, quality_grade)
+                msg.attach(MIMEText(html_body, "html", "utf-8"))
 
-            # Attach PDF
-            if pdf_path and os.path.exists(pdf_path):
-                with open(pdf_path, "rb") as f:
-                    part = MIMEBase("application", "pdf")
-                    part.set_payload(f.read())
-                    encoders.encode_base64(part)
-                    part.add_header(
-                        "Content-Disposition",
-                        f"attachment; filename=resume_{name.replace(' ', '_')}.pdf",
-                    )
-                    msg.attach(part)
+                if pdf_path and os.path.exists(pdf_path):
+                    with open(pdf_path, "rb") as f:
+                        part = MIMEBase("application", "pdf")
+                        part.set_payload(f.read())
+                        encoders.encode_base64(part)
+                        part.add_header(
+                            "Content-Disposition",
+                            f"attachment; filename=resume_{name.replace(' ', '_')}.pdf",
+                        )
+                        msg.attach(part)
 
-            # Attach DOCX
-            if docx_path and os.path.exists(docx_path):
-                with open(docx_path, "rb") as f:
-                    part = MIMEBase(
-                        "application",
-                        "vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    )
-                    part.set_payload(f.read())
-                    encoders.encode_base64(part)
-                    part.add_header(
-                        "Content-Disposition",
-                        f"attachment; filename=resume_{name.replace(' ', '_')}.docx",
-                    )
-                    msg.attach(part)
+                if docx_path and os.path.exists(docx_path):
+                    with open(docx_path, "rb") as f:
+                        part = MIMEBase(
+                            "application",
+                            "vnd.openxmlformats-officedocument.wordprocessingml.document",
+                        )
+                        part.set_payload(f.read())
+                        encoders.encode_base64(part)
+                        part.add_header(
+                            "Content-Disposition",
+                            f"attachment; filename=resume_{name.replace(' ', '_')}.docx",
+                        )
+                        msg.attach(part)
 
-            # Send
-            with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as server:
-                server.ehlo()
-                server.starttls()
-                server.ehlo()
-                server.login(Config.SMTP_USER, Config.SMTP_PASSWORD)
-                server.send_message(msg)
+                with smtplib.SMTP(Config.SMTP_HOST, Config.SMTP_PORT) as server:
+                    server.ehlo()
+                    server.starttls()
+                    server.ehlo()
+                    server.login(Config.SMTP_USER, Config.SMTP_PASSWORD)
+                    server.send_message(msg)
 
-            logger.info(f"📧 Resume emailed successfully to {to_email}")
-            return {"success": True, "message": f"Resume sent to {to_email}"}
+                logger.info(f"📧 Resume emailed successfully to {to_email} via SMTP")
+                return {"success": True, "message": f"Resume sent to {to_email}"}
 
         except Exception as exc:
             logger.error(f"Email attempt {attempt} failed: {exc}")
